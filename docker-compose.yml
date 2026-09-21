@@ -1,0 +1,18 @@
+# Phase 0.5 development environment.
+# One service; consume the same npm scripts as the host workflow.
+
+services:
+  dev:
+    build:
+      context: .
+    image: black-demo-dev
+    working_dir: /workspace
+    init: true
+    tty: true
+    stdin_open: true
+    volumes:
+      - .:/workspace
+    # A later phase (roughly Phase 6) will run the Pong server; expose its port here when it lands.
+    # ports:
+    #   - "3000:3000"
+    command: ["bash"]

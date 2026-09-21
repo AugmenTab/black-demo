@@ -1,0 +1,25 @@
+# Local plan/notes directory — never needs to enter the image.
+.local/
+
+# Ephemeral build/dependency output — the container manages its own copy.
+node_modules/
+dist/
+coverage/
+
+# Repo-level metadata not needed for building or running the toolchain.
+.git/
+.gitignore
+
+# Editor/IDE detritus.
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Log files.
+*.log
+npm-debug.log*
+
+# Do NOT ignore docs/, examples/, std/, reference/, or test/ — they participate in
+# the toolchain, agent experiments, and demo material.
