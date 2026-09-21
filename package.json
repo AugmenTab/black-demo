@@ -1,0 +1,27 @@
+{
+  "name": "black-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Disposable Black + White demo toolchain (preview-web-1 profile).",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "white": "./dist/src/white/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "node -e \"import('node:fs/promises').then(fs => fs.rm('dist', { recursive: true, force: true }))\"",
+    "pretest": "npm run build",
+    "test": "node --test \"dist/test/**/*.test.js\"",
+    "white": "node ./dist/src/white/cli.js"
+  },
+  "dependencies": {
+    "smol-toml": "^1.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2"
+  }
+}
