@@ -26,7 +26,7 @@ function buildHelp(): string {
   lines.push("  white <command> --help");
   lines.push("  white <command> --json");
   lines.push("");
-  lines.push("Phase 1 status: walking skeleton — Black source is not yet parsed or compiled.");
+  lines.push("Phase 2 status: real lexer + parser; name resolution, typechecking, and codegen still unimplemented.");
   return lines.join("\n");
 }
 
@@ -54,7 +54,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (first === "--version" || first === "-v") {
-    process.stdout.write("white 0.1.0 (preview-web-1, phase-1)\n");
+    process.stdout.write("white 0.2.0 (preview-web-1, phase-2)\n");
     return 0;
   }
 
@@ -140,7 +140,7 @@ function humanSummary(name: string, okStatus: boolean, result: unknown): string 
           `  project: ${str(r["projectRoot"])}`,
           `  entry:   ${str(r["entry"])}`,
           `  profile: ${str(r["profile"])} (target: ${str(r["target"])})`,
-          `Black source checking is not implemented in this phase.`,
+          `Black syntax valid. Semantic checking is not yet implemented in this phase.`,
         ].join("\n");
       case "build": {
         const artifacts = Array.isArray(r["artifacts"]) ? (r["artifacts"] as Array<{ path: string }>) : [];
@@ -148,7 +148,7 @@ function humanSummary(name: string, okStatus: boolean, result: unknown): string 
         return [
           `Placeholder build completed.`,
           paths,
-          `Source parsing is not yet implemented.`,
+          `Source parsed successfully; JavaScript emission is still a placeholder.`,
         ].join("\n");
       }
       case "run":

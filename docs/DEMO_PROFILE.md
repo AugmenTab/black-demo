@@ -333,10 +333,12 @@ Int
 Float
 Bool
 Text
-Unit
+()
 List a
 Maybe a
 ```
+
+The unit type is spelled `()` in both type and expression position, matching canonical Black. `()` is both the unit type constructor and the unit value; there is no `Unit` alias.
 
 The observable `Maybe` surface for `preview-web-1` is:
 

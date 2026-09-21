@@ -37,7 +37,7 @@ export async function makeTempProject(opts: TempProjectOptions = {}): Promise<Te
     await mkdir(path.dirname(entryPath), { recursive: true });
     await writeFile(
       entryPath,
-      opts.entryContent ?? "module Main (main)\n\nmain :: Unit\nmain =\n  ()\n",
+      opts.entryContent ?? "module Main (main)\n\nmain :: ()\nmain =\n  ()\n",
       "utf8",
     );
   }

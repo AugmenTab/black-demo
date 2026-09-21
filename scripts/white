@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Run the White CLI inside the Phase 0.5 Docker dev container against a project
+# directory. Usage:
+#   ./scripts/white <project-dir> <subcommand> [args...]
+# e.g.
+#   ./scripts/white examples/hello check
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if [ $# -lt 2 ]; then
+  echo "usage: scripts/white <project-dir> <subcommand> [args...]" >&2
+  exit 2
+fi
+project_dir="$1"; shift
+exec docker compose run --rm dev bash -lc "cd /workspace/${project_dir} && npx tsx /workspace/src/white/cli.ts $*"

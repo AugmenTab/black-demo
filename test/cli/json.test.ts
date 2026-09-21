@@ -9,7 +9,8 @@ test("--json returns a valid envelope for capabilities", async () => {
   assert.equal(parsed.ok, true);
   assert.equal(parsed.command, "capabilities");
   assert.equal(parsed.profile, "preview-web-1");
-  assert.equal(parsed.result.compiler.source_parsing, false);
+  assert.equal(parsed.result.compiler.source_parsing, true);
+  assert.equal(parsed.result.compiler.typechecking, false);
 });
 
 test("--json failure returns ok=false and structured diagnostics", async () => {

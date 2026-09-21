@@ -64,4 +64,13 @@ export const codes = {
   entryNotBlack: "WHITE_ENTRY_NOT_BLACK",
   buildFailed: "WHITE_BUILD_FAILED",
   runtimeFailed: "WHITE_RUNTIME_FAILED",
+  lexInvalidCharacter: "BLACK_LEX_INVALID_CHARACTER",
+  lexInvalidNumber: "BLACK_LEX_INVALID_NUMBER",
+  lexUnterminatedString: "BLACK_LEX_UNTERMINATED_STRING",
+  lexInvalidEscape: "BLACK_LEX_INVALID_ESCAPE",
+  parseUnexpectedToken: "BLACK_PARSE_UNEXPECTED_TOKEN",
+  parseUnexpectedEof: "BLACK_PARSE_UNEXPECTED_EOF",
+  parseTrailingTokens: "BLACK_PARSE_TRAILING_TOKENS",
+  parseLayoutError: "BLACK_PARSE_LAYOUT_ERROR",
+  parseUnsupportedSyntax: "BLACK_PARSE_UNSUPPORTED_SYNTAX",
 } as const;

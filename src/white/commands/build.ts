@@ -1,11 +1,11 @@
 import { compile } from "../../compiler/index.js";
-import { codes, makeDiagnostic, ok } from "../output/diagnostics.js";
+import { codes, fail, makeDiagnostic, ok } from "../output/diagnostics.js";
 import type { CommandDefinition } from "./shared.js";
 import { distDir, projectFailure, resolveProject } from "./shared.js";
 
 export const buildCommand: CommandDefinition = {
   name: "build",
-  summary: "Build the current Black project (placeholder compiler in Phase 1).",
+  summary: "Parse the entry module and emit the placeholder JavaScript artifact.",
   supportsJson: true,
   async run(ctx) {
     const outcome = await resolveProject(ctx.cwd);
@@ -20,8 +20,8 @@ export const buildCommand: CommandDefinition = {
         entryPath: loaded.absoluteEntry,
         outDir,
       });
-      if (result.diagnostics.some((d) => d.severity === "error")) {
-        return projectFailure("build", result.diagnostics);
+      if (!result.ok) {
+        return fail("build", result.diagnostics);
       }
       return ok(
         "build",
@@ -30,7 +30,7 @@ export const buildCommand: CommandDefinition = {
           outDir,
           artifacts: result.artifacts,
           placeholder: true,
-          note: "Placeholder build completed. Source parsing is not yet implemented.",
+          note: "Source parsed successfully; JavaScript emission is still a placeholder (real codegen belongs to Phase 5).",
         },
         result.diagnostics,
       );
