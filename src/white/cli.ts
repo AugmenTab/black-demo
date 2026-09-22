@@ -140,15 +140,15 @@ function humanSummary(name: string, okStatus: boolean, result: unknown): string 
           `  project: ${str(r["projectRoot"])}`,
           `  entry:   ${str(r["entry"])}`,
           `  profile: ${str(r["profile"])} (target: ${str(r["target"])})`,
-          `Black syntax valid. Semantic checking is not yet implemented in this phase.`,
+          `Black syntax valid. Names resolved across ${String(r["modulesLoaded"] ?? 0)} reachable module(s).`,
         ].join("\n");
       case "build": {
         const artifacts = Array.isArray(r["artifacts"]) ? (r["artifacts"] as Array<{ path: string }>) : [];
         const paths = artifacts.map((a) => `  - ${a.path}`).join("\n");
         return [
-          `Placeholder build completed.`,
+          `Placeholder build completed (${String(r["modulesResolved"] ?? 0)} module(s) resolved).`,
           paths,
-          `Source parsed successfully; JavaScript emission is still a placeholder.`,
+          `Names resolved across the reachable module closure; JavaScript emission is still a placeholder.`,
         ].join("\n");
       }
       case "run":

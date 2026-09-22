@@ -138,6 +138,51 @@ import Game.Geometry (Arena)
 import Platform.Server as Server
 ```
 
+**Import qualification.** A **selected import** introduces the selected
+declarations unqualified and makes those same selected declarations available
+through the imported module's canonical qualified name. A **qualified `as`
+import** introduces only its module alias and permits that alias to access the
+module's exported interface. An aliased import does *not* independently
+introduce the canonical module path as an additional qualifier.
+
+Given `module Foo.Bar (x, y, Shape (..))` and:
+
+```black
+import Foo.Bar (x, Shape (..))
+import Foo.Bar as B
+```
+
+then:
+
+```text
+x, Shape, Circle           -- visible unqualified from the selected import
+Foo.Bar.x                  -- visible through the canonical selected qualifier
+Foo.Bar.Shape, Foo.Bar.Circle  -- ditto (Type (..) exposes constructors too)
+B.x, B.Shape, B.Circle, B.y    -- visible through the alias
+Foo.Bar.y                  -- NOT visible: y was not selected
+y                          -- NOT visible: y was not selected
+```
+
+Unqualified use, canonical-qualified use, and alias-qualified use of the same
+declaration all resolve to the same `DefId`. Import order does not affect
+visibility.
+
+**Module qualifier collisions.** A single-segment qualifier spelling can be
+bound by either an alias (`import M as Q`) or by the leading segment of a
+canonical selected import (`import Q (…)`, or `import Q.Sub (…)` where the
+qualifier chain re-enters `Q`). The resolver collects every module identity
+that a qualifier could denote and then collapses them by semantic module id:
+
+- **Same module through multiple sources** — `import Foo (x)` combined with
+  `import Foo as Foo` names one identity. The reference is not ambiguous, and
+  member lookup unions the visibility surfaces (`Foo.x` from the selected
+  scope, `Foo.y` from the alias's whole-interface view).
+- **Different modules under the same qualifier** — `import Foo (x)` combined
+  with `import Bar as Foo` names two identities. Any use of `Foo.` fails with
+  `BLACK_MODULE_QUALIFIER_AMBIGUOUS`, regardless of import order and
+  regardless of whether the referenced member happens to exist in only one of
+  the candidates.
+
 ### 7.2 Function declarations
 
 Top-level function signatures are **required**. Supported:
@@ -189,6 +234,11 @@ let
 in
   ...
 ```
+
+Local `let` bindings are **sequential and non-recursive**. A binding's
+right-hand side may reference bindings introduced earlier in the same `let`
+block, but not itself or later sibling bindings. The `in` body sees all
+bindings from the block.
 
 Local-binding `where` is **not** supported in `preview-web-1`.
 

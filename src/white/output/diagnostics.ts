@@ -5,6 +5,12 @@ export interface DiagnosticSpan {
   end: { line: number; column: number };
 }
 
+export interface RelatedLocation {
+  file?: string;
+  span?: DiagnosticSpan;
+  message: string;
+}
+
 export interface Diagnostic {
   code: string;
   kind: string;
@@ -13,6 +19,7 @@ export interface Diagnostic {
   file?: string;
   span?: DiagnosticSpan;
   details?: Record<string, unknown>;
+  related?: RelatedLocation[];
 }
 
 export type Profile = "preview-web-1";
@@ -42,6 +49,7 @@ export function makeDiagnostic(input: {
   file?: string;
   span?: DiagnosticSpan;
   details?: Record<string, unknown>;
+  related?: RelatedLocation[];
 }): Diagnostic {
   return {
     code: input.code,
@@ -51,6 +59,7 @@ export function makeDiagnostic(input: {
     ...(input.file !== undefined ? { file: input.file } : {}),
     ...(input.span !== undefined ? { span: input.span } : {}),
     ...(input.details !== undefined ? { details: input.details } : {}),
+    ...(input.related !== undefined ? { related: input.related } : {}),
   };
 }
 
@@ -73,4 +82,28 @@ export const codes = {
   parseTrailingTokens: "BLACK_PARSE_TRAILING_TOKENS",
   parseLayoutError: "BLACK_PARSE_LAYOUT_ERROR",
   parseUnsupportedSyntax: "BLACK_PARSE_UNSUPPORTED_SYNTAX",
+
+  // ---------- Phase 3: module graph and name resolution ----------
+  moduleNotFound: "BLACK_MODULE_NOT_FOUND",
+  modulePathMismatch: "BLACK_MODULE_PATH_MISMATCH",
+  moduleCycle: "BLACK_MODULE_CYCLE",
+
+  exportUnknown: "BLACK_EXPORT_UNKNOWN",
+  exportInvalidConstructors: "BLACK_EXPORT_INVALID_CONSTRUCTORS",
+
+  importUnknownName: "BLACK_IMPORT_UNKNOWN_NAME",
+  importNotExported: "BLACK_IMPORT_NOT_EXPORTED",
+  importConstructorsNotExported: "BLACK_IMPORT_CONSTRUCTORS_NOT_EXPORTED",
+
+  nameUnknown: "BLACK_NAME_UNKNOWN",
+  typeNameUnknown: "BLACK_TYPE_NAME_UNKNOWN",
+  nameAmbiguous: "BLACK_NAME_AMBIGUOUS",
+  nameDuplicate: "BLACK_NAME_DUPLICATE",
+  nameDuplicateBinding: "BLACK_NAME_DUPLICATE_BINDING",
+  nameShadowing: "BLACK_NAME_SHADOWING",
+
+  moduleAliasDuplicate: "BLACK_MODULE_ALIAS_DUPLICATE",
+  moduleAliasUnknown: "BLACK_MODULE_ALIAS_UNKNOWN",
+  moduleQualifierAmbiguous: "BLACK_MODULE_QUALIFIER_AMBIGUOUS",
+  qualifiedNameUnknown: "BLACK_QUALIFIED_NAME_UNKNOWN",
 } as const;

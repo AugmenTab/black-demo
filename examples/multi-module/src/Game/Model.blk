@@ -1,0 +1,12 @@
+module Game.Model (Shape (..), area, hiddenFromSelection)
+
+type Shape =
+  | Circle
+  | Square
+  | Triangle
+
+area :: Shape -> Int
+area s = 0
+
+hiddenFromSelection :: Int
+hiddenFromSelection = 42

@@ -120,6 +120,10 @@ export interface PatternBool {
 
 export interface PatternCon {
   kind: "PatternCon";
+  // For a module-qualified constructor pattern `Alias.Ctor arg…` or
+  // `Mod.Sub.Ctor arg…`, `qualifier.parts` holds the module-path segments in
+  // source order (length ≥ 1). `name` is always the terminal constructor.
+  qualifier: { parts: { name: string; span: Span }[]; span: Span } | null;
   name: string;
   nameSpan: Span;
   args: Pattern[];

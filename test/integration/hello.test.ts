@@ -22,13 +22,14 @@ test("Phase 2 end-to-end: check + build + run against examples/hello", async () 
   assert.equal(check.code, 0, `check failed: ${check.stdout}${check.stderr}`);
   assert.match(check.stdout, /Project configuration valid/);
   assert.match(check.stdout, /Black syntax valid/);
+  assert.match(check.stdout, /Names resolved/);
 
   const checkJson = await runCli(["check", "--json"], { cwd: HELLO_DIR });
   assert.equal(checkJson.code, 0);
   const checkEnvelope = JSON.parse(checkJson.stdout);
   assert.equal(checkEnvelope.ok, true);
   assert.equal(checkEnvelope.result.syntaxValid, true);
-  assert.equal(checkEnvelope.result.semanticCheckingImplemented, false);
+  assert.equal(checkEnvelope.result.namesResolved, true);
 
   const build = await runCli(["build"], { cwd: HELLO_DIR });
   assert.equal(build.code, 0, `build failed: ${build.stdout}${build.stderr}`);

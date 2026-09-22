@@ -745,13 +745,36 @@ class Parser {
   // ---- Patterns -------------------------------------------------------
 
   private parsePattern(minCol: number): Pattern {
-    // Constructor pattern possibly with arguments.
+    // Constructor pattern possibly with arguments; module-qualified via
+    // `Alias.Ctor arg…` (§12).
     const t = this.cur();
     if (t.kind === "CONID") {
       this.advance();
+      // Collect module-qualifier segments: any number of `.CONID`. The final
+      // CONID (still consumed here) is the terminal constructor name.
+      const conids: Token[] = [t];
+      while (this.check("DOT") && this.peek(1).kind === "CONID") {
+        this.advance();
+        const next = this.expect("CONID", "a constructor name after module qualifier");
+        conids.push(next);
+      }
+      const ctorTok: Token = conids[conids.length - 1]!;
+      const qualifierToks = conids.slice(0, -1);
+      const qualifier =
+        qualifierToks.length > 0
+          ? {
+              parts: qualifierToks.map((q) => ({ name: q.lexeme, span: q.span })),
+              span: makeSpan(
+                this.file,
+                qualifierToks[0]!.span.start,
+                qualifierToks[qualifierToks.length - 1]!.span.end,
+              ),
+            }
+          : null;
       // `CONID { ... }` on the same line is a labelled record pattern.
-      if (this.check("LBRACE") && this.cur().span.start.line === t.span.end.line) {
-        return this.parseRecordPatternRest(t);
+      if (this.check("LBRACE") && this.cur().span.start.line === ctorTok.span.end.line) {
+        void qualifier;
+        return this.parseRecordPatternRest(ctorTok);
       }
       const args: Pattern[] = [];
       while (true) {
@@ -761,13 +784,15 @@ class Parser {
         if (!canStartPatternAtom(u.kind)) break;
         args.push(this.parsePatternAtom(minCol));
       }
-      const end = args.length > 0 ? args[args.length - 1]!.span.end : t.span.end;
+      const start = qualifier?.span.start ?? ctorTok.span.start;
+      const end = args.length > 0 ? args[args.length - 1]!.span.end : ctorTok.span.end;
       return {
         kind: "PatternCon",
-        name: t.lexeme,
-        nameSpan: t.span,
+        qualifier,
+        name: ctorTok.lexeme,
+        nameSpan: ctorTok.span,
         args,
-        span: makeSpan(this.file, t.span.start, end),
+        span: makeSpan(this.file, start, end),
       };
     }
     return this.parsePatternAtom(minCol);
@@ -807,18 +832,41 @@ class Parser {
       // application when appearing as a full pattern. Since we're inside
       // an atom parser (used for e.g. definition parameters), keep it as
       // a zero-arg constructor to avoid consuming subsequent arguments.
+      // Also support module-qualified nullary constructor `Mod.Sub.Ctor` (§12).
       this.advance();
+      const conids: Token[] = [t];
+      while (this.check("DOT") && this.peek(1).kind === "CONID") {
+        this.advance();
+        const next = this.expect("CONID", "a constructor name after module qualifier");
+        conids.push(next);
+      }
+      const ctorTok: Token = conids[conids.length - 1]!;
+      const qualifierToks = conids.slice(0, -1);
+      const qualifier =
+        qualifierToks.length > 0
+          ? {
+              parts: qualifierToks.map((q) => ({ name: q.lexeme, span: q.span })),
+              span: makeSpan(
+                this.file,
+                qualifierToks[0]!.span.start,
+                qualifierToks[qualifierToks.length - 1]!.span.end,
+              ),
+            }
+          : null;
       // If a record pattern follows immediately, this is a labelled record
       // pattern: `Point { x = px, y = py }`.
-      if (this.check("LBRACE") && this.cur().span.start.line === t.span.end.line) {
-        return this.parseRecordPatternRest(t);
+      if (this.check("LBRACE") && this.cur().span.start.line === ctorTok.span.end.line) {
+        void qualifier;
+        return this.parseRecordPatternRest(ctorTok);
       }
+      const start = qualifier?.span.start ?? ctorTok.span.start;
       return {
         kind: "PatternCon",
-        name: t.lexeme,
-        nameSpan: t.span,
+        qualifier,
+        name: ctorTok.lexeme,
+        nameSpan: ctorTok.span,
         args: [],
-        span: t.span,
+        span: makeSpan(this.file, start, ctorTok.span.end),
       };
     }
     if (t.kind === "LBRACE") {
@@ -953,18 +1001,23 @@ class Parser {
     while (true) {
       const t = this.cur();
       if (t.kind === "DOT") {
-        // Field access. Field name is an IDENT immediately after '.'
-        // (no whitespace enforcement needed — DEMO_PROFILE examples permit
-        // whitespace around access chains only in specific ways; the parser
-        // simply accepts `record.field`).
+        // `record.field` or module-qualified access `Alias.Name` (§10). The
+        // segment after '.' may be either an IDENT (structural field or
+        // qualified term) or a CONID (qualified constructor). The resolver
+        // distinguishes qualified access from structural field access by
+        // checking whether the record head is a known module alias.
         const dot = this.advance();
-        const fieldTok = this.expect("IDENT", "a field name after '.'");
+        const nextTok = this.cur();
+        if (nextTok.kind !== "IDENT" && nextTok.kind !== "CONID") {
+          this.unexpected(nextTok, "a field name or qualified constructor after '.'");
+        }
+        this.advance();
         atom = {
           kind: "ExprField",
           record: atom,
-          field: fieldTok.lexeme,
-          fieldSpan: fieldTok.span,
-          span: makeSpan(this.file, atom.span.start, fieldTok.span.end),
+          field: nextTok.lexeme,
+          fieldSpan: nextTok.span,
+          span: makeSpan(this.file, atom.span.start, nextTok.span.end),
         };
         void dot;
         continue;

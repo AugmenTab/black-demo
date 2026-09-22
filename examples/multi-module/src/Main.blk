@@ -1,0 +1,47 @@
+module Main (main)
+
+import Game.Model (Shape (..), area)
+import Game.Model as Model
+
+-- Phase 3.4 §28: same-module qualifier coexistence. `Utils` names one
+-- semantic module identity through two visibility sources — the selected
+-- canonical scope (only `a`) and the self-alias (whole exported interface).
+-- The qualifier is NOT ambiguous, and visibility surfaces combine so both
+-- `Utils.a` and `Utils.b` resolve.
+import Utils (a)
+import Utils as Utils
+
+-- Unqualified access — from the selected import.
+shapeUnq = Circle
+areaUnq = area shapeUnq
+
+-- Canonical selected access — same DefIds as the unqualified forms.
+shapeCanonical = Game.Model.Circle
+areaCanonical = Game.Model.area shapeCanonical
+
+-- Alias access — reaches the module's full exported interface.
+shapeAlias = Model.Circle
+areaAlias = Model.area shapeAlias
+
+-- Alias reaches an export that was NOT selected. This declaration is
+-- deliberately invisible unqualified and under the canonical `Game.Model`
+-- qualifier; see test/integration/negative-projects.test.ts for the negative
+-- side of this matrix.
+onlyViaAlias = Model.hiddenFromSelection
+
+-- Same-module coexistence: `Utils.a` is available via the canonical scope
+-- from the selected import; `Utils.b` is available only through the alias
+-- interface. Identity collapse means neither reference is ambiguous.
+utilsFromCanonical = Utils.a
+utilsFromAlias = Utils.b
+
+sequential =
+  let
+    first = 1
+    second = first
+  in
+    second
+
+main :: ()
+main =
+  ()

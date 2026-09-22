@@ -1,0 +1,7 @@
+[project]
+name = "multi-module"
+profile = "preview-web-1"
+
+[target]
+kind = "node"
+entry = "src/Main.blk"
