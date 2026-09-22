@@ -177,6 +177,17 @@ interface QualifierResolution {
   candidates: QualifierCandidate[];
 }
 
+// Three-state qualifier decision (phase-03_5.md §4). Expression-side
+// structural fallback for `Foo.x` is legal ONLY when the qualifier is
+// `no-qualifier` — a spelling that names no module at all. An `ambiguous`
+// spelling was recognised as module syntax and must stop after the ambiguity
+// diagnostic; a subsequent structural reinterpretation would fabricate a
+// spurious BLACK_NAME_UNKNOWN for the head.
+type QualifierDecision =
+  | { kind: "resolved"; qual: QualifierResolution }
+  | { kind: "no-qualifier" }
+  | { kind: "ambiguous" };
+
 class ModuleResolver {
   diagnostics: Diagnostic[] = [];
   private scopes: ModuleScopes = {
@@ -952,52 +963,50 @@ class ModuleResolver {
   // BLACK_MODULE_QUALIFIER_AMBIGUOUS error, regardless of import order or
   // whether the terminal member happens to be defined in only one candidate
   // (phase-03_4.md §§3, 4, 5, 7-11). Emits BLACK_MODULE_ALIAS_UNKNOWN when
-  // no candidate exists at all.
+  // no candidate exists at all — used by type/pattern paths where the
+  // qualifier is required and no structural fallback exists.
   private resolveQualifierToModule(
     parts: { name: string; span: Span }[],
     qualifierSpan: Span,
   ): QualifierResolution | null {
-    const decision = this.resolveQualifier(parts, qualifierSpan, /* emitUnknown */ true);
-    return decision.kind === "resolved" ? decision.qual : null;
+    const decision = this.resolveQualifier(parts, qualifierSpan);
+    if (decision.kind === "resolved") return decision.qual;
+    if (decision.kind === "no-qualifier") {
+      const dotted = parts.map((p) => p.name).join(".");
+      this.diagnostics.push(
+        makeDiagnostic({
+          code: codes.moduleAliasUnknown,
+          kind: "resolve",
+          severity: "error",
+          message: `unknown module qualifier '${dotted}'`,
+          file: this.record.file,
+          span: toSpan(qualifierSpan),
+          details: { alias: dotted },
+        }),
+      );
+    }
+    return null;
   }
 
-  // Silent-on-no-match variant used by expression-side reinterpretation so
-  // that a chain whose head isn't actually a known qualifier falls through
-  // to structural field access without spuriously erroring. Ambiguity is
-  // still emitted here — a use-site collision is a real error even when the
-  // fallthrough is otherwise available (phase-03_4.md §12).
-  private resolveQualifierToModuleOrNull(
+  // Preserves the three-state distinction so expression-side callers can:
+  //  * `resolved`   — proceed with qualified lookup;
+  //  * `no-qualifier` — fall through to structural field access silently;
+  //  * `ambiguous`  — stop with the ambiguity diagnostic already emitted, and
+  //                   NOT reinterpret as structural (phase-03_5.md §4, §5).
+  private resolveQualifierDecision(
     parts: { name: string; span: Span }[],
     qualifierSpan: Span,
-  ): QualifierResolution | null {
-    const decision = this.resolveQualifier(parts, qualifierSpan, /* emitUnknown */ false);
-    return decision.kind === "resolved" ? decision.qual : null;
+  ): QualifierDecision {
+    return this.resolveQualifier(parts, qualifierSpan);
   }
 
   private resolveQualifier(
     parts: { name: string; span: Span }[],
     qualifierSpan: Span,
-    emitUnknown: boolean,
-  ):
-    | { kind: "resolved"; qual: QualifierResolution }
-    | { kind: "unresolved" } {
+  ): QualifierDecision {
     const candidates = this.collectQualifierCandidates(parts);
     if (candidates.length === 0) {
-      if (emitUnknown) {
-        const dotted = parts.map((p) => p.name).join(".");
-        this.diagnostics.push(
-          makeDiagnostic({
-            code: codes.moduleAliasUnknown,
-            kind: "resolve",
-            severity: "error",
-            message: `unknown module qualifier '${dotted}'`,
-            file: this.record.file,
-            span: toSpan(qualifierSpan),
-            details: { alias: dotted },
-          }),
-        );
-      }
-      return { kind: "unresolved" };
+      return { kind: "no-qualifier" };
     }
 
     // Collapse by semantic module identity. Multiple visibility sources for
@@ -1047,7 +1056,7 @@ class ModuleResolver {
         related,
       }),
     );
-    return { kind: "unresolved" };
+    return { kind: "ambiguous" };
   }
 
   private collectQualifierCandidates(
@@ -1262,22 +1271,39 @@ class ModuleResolver {
         // by the lexer, then captured verbatim in `field`).
         const qualifier = collectQualifierChain(e);
         if (qualifier !== null) {
-          const qual = this.resolveQualifierToModuleOrNull(qualifier.parts, qualifier.span);
-          if (qual !== null) {
+          const decision = this.resolveQualifierDecision(qualifier.parts, qualifier.span);
+          const dotted = qualifier.parts.map((p) => p.name).join(".");
+          if (decision.kind === "resolved") {
             // Once the qualifier is recognised as a module path, an unknown
             // terminal is a qualified-name error, not a structural fallback
             // (phase-03_3.md §24).
-            const dotted = qualifier.parts.map((p) => p.name).join(".");
-            const ref = this.lookupTermInQualifier(qual, e.field, e.fieldSpan);
+            const ref = this.lookupTermInQualifier(decision.qual, e.field, e.fieldSpan);
             return {
               kind: "ExprQualified",
               alias: dotted,
               aliasSpan: qualifier.span,
-              moduleId: qual.moduleId,
+              moduleId: decision.qual.moduleId,
               ref,
               span: e.span,
             };
           }
+          if (decision.kind === "ambiguous") {
+            // The qualifier was recognised as module syntax but names two
+            // different module identities. The ambiguity diagnostic is
+            // already emitted; do NOT reinterpret this as structural field
+            // access — that would fabricate a spurious BLACK_NAME_UNKNOWN
+            // for the head (phase-03_5.md §§5, 6). Preserve source
+            // provenance without fabricating a module identity.
+            return {
+              kind: "ExprQualified",
+              alias: dotted,
+              aliasSpan: qualifier.span,
+              moduleId: null,
+              ref: { kind: "unresolved", name: e.field, namespace: "term", span: e.fieldSpan },
+              span: e.span,
+            };
+          }
+          // decision.kind === "no-qualifier" — fall through to structural.
         }
         // Ordinary structural field access — resolve the record expression,
         // leave the field label unresolved (§36).

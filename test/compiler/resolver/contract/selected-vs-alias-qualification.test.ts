@@ -1,8 +1,8 @@
-// Contract: Phase 3.7 selected-import vs. alias-import qualification
-// visibility (phase-03_3.md §§13-20). Selected imports expose the selected
-// declarations both unqualified and through the canonical dotted path,
-// but not other exports. Alias imports expose the module's whole exported
-// interface through the alias only — never through the canonical path.
+// Contract: selected-import vs. alias-import qualification visibility
+// (phase-03_3.md §§13-20). Selected imports expose the selected declarations
+// both unqualified and through the canonical dotted path, but not other
+// exports. Alias imports expose the module's whole exported interface
+// through the alias only — never through the canonical path.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

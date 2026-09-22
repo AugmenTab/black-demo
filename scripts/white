@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-# Run the White CLI inside the Phase 0.5 Docker dev container against a project
-# directory. Usage:
+# Run the White CLI inside the Phase 0.5 Docker dev container against a
+# project directory. Usage:
 #   ./scripts/white <project-dir> <subcommand> [args...]
 # e.g.
 #   ./scripts/white examples/hello check
+#   ./scripts/white examples/hello check --json
+#
+# The compiled CLI (dist/src/white/cli.js) is used directly — no runtime
+# transpiler (`tsx`, `ts-node`, etc.) is required. To guarantee the CLI
+# corresponds to the current TypeScript sources (not a stale `dist/` left
+# over from an earlier invocation), the wrapper unconditionally recompiles
+# before executing. Correctness matters more than saving one `tsc` run for
+# this disposable prototype.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [ $# -lt 2 ]; then
@@ -11,4 +19,13 @@ if [ $# -lt 2 ]; then
   exit 2
 fi
 project_dir="$1"; shift
-exec docker compose run --rm dev bash -lc "cd /workspace/${project_dir} && npx tsx /workspace/src/white/cli.ts $*"
+
+# Always rebuild the TypeScript sources so `dist/` matches the current tree.
+docker compose run --rm dev bash -lc "cd /workspace && npm run build --silent" >/dev/null
+
+# Forward each remaining argument as a distinct positional to the CLI, so
+# ordinary shell quoting works ("--json", flags with spaces, etc.).
+exec docker compose run --rm \
+  --workdir "/workspace/${project_dir}" \
+  dev \
+  node /workspace/dist/src/white/cli.js "$@"

@@ -237,25 +237,59 @@ test("negative: alias-only import does not register canonical path → BLACK_NAM
   );
 });
 
-// Phase 3.4 §27: a qualifier spelling bound to two different module
-// identities must fail check/build/run with BLACK_MODULE_QUALIFIER_AMBIGUOUS.
-// The stale-artifact placeholder must not appear on run's stdout.
+// Phase 3.4 §27 + phase-03_5.md §§5-6, 12: a qualifier spelling bound to two
+// different module identities must fail check/build/run with
+// BLACK_MODULE_QUALIFIER_AMBIGUOUS. The pre-fix regression fabricated a
+// spurious BLACK_NAME_UNKNOWN for the head of the qualifier because the
+// resolver reinterpreted the ambiguous qualifier as structural field access
+// — this test guards against its return by asserting BLACK_NAME_UNKNOWN is
+// NEVER present alongside the ambiguity, on every White surface
+// (check/build/run --json). The stale-artifact placeholder must not appear.
 test("negative: alias/canonical qualifier collision → BLACK_MODULE_QUALIFIER_AMBIGUOUS", async () => {
-  await expectFail(
-    {
-      "Main.blk": [
-        "module Main (main)",
-        "",
-        "import Foo (x)",
-        "import Bar as Foo",
-        "",
-        "main = Foo.x",
-      ].join("\n") + "\n",
-      "Foo.blk": "module Foo (x)\n\nx = 1\n",
-      "Bar.blk": "module Bar (x)\n\nx = 2\n",
-    },
-    "BLACK_MODULE_QUALIFIER_AMBIGUOUS",
-  );
+  const files = {
+    "Main.blk": [
+      "module Main (main)",
+      "",
+      "import Foo (x)",
+      "import Bar as Foo",
+      "",
+      "main = Foo.x",
+    ].join("\n") + "\n",
+    "Foo.blk": "module Foo (x)\n\nx = 1\n",
+    "Bar.blk": "module Bar (x)\n\nx = 2\n",
+  };
+  const p = await makeProject(files);
+  try {
+    for (const surface of ["check", "build", "run"] as const) {
+      const r = await runCli([surface, "--json"], { cwd: p.cwd });
+      assert.equal(r.code, 1, `${surface} should fail`);
+      const env = JSON.parse(r.stdout);
+      assert.equal(env.ok, false);
+      const codes = env.diagnostics.map((d: { code: string }) => d.code);
+      assert.ok(
+        codes.includes("BLACK_MODULE_QUALIFIER_AMBIGUOUS"),
+        `${surface}: expected BLACK_MODULE_QUALIFIER_AMBIGUOUS; got ${codes.join(", ")}`,
+      );
+      assert.ok(
+        !codes.includes("BLACK_NAME_UNKNOWN"),
+        `${surface}: BLACK_NAME_UNKNOWN must not accompany the ambiguity (pre-fix regression); got ${codes.join(", ")}`,
+      );
+      assert.ok(
+        !codes.includes("BLACK_QUALIFIED_NAME_UNKNOWN"),
+        `${surface}: BLACK_QUALIFIED_NAME_UNKNOWN must not accompany the ambiguity; got ${codes.join(", ")}`,
+      );
+      assert.ok(
+        !r.stdout.includes("Black preview pipeline alive."),
+        `${surface}: placeholder marker must not appear`,
+      );
+      assert.ok(
+        !r.stderr.includes("Black preview pipeline alive."),
+        `${surface}: placeholder marker must not appear on stderr`,
+      );
+    }
+  } finally {
+    await p.cleanup();
+  }
 });
 
 // §20 — stale-artifact guard. If a project builds successfully, then the

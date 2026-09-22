@@ -1,10 +1,33 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { COMMAND_ORDER, COMMANDS } from "./commands/index.js";
 import { renderHuman } from "./output/render-human.js";
 import { renderJson } from "./output/render-json.js";
 import { PROFILE, fail, makeDiagnostic } from "./output/diagnostics.js";
 import type { CommandDefinition } from "./commands/shared.js";
+
+const STAGE = "phase-3-name-resolution";
+const PACKAGE_VERSION = readPackageVersion();
+
+// Walk upward from this file until finding the project's package.json — this
+// keeps the CLI's version single-sourced from package.json without hard-coding
+// a relative depth that differs between source (src/…) and compiled (dist/src/…)
+// layouts.
+function readPackageVersion(): string {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  while (true) {
+    try {
+      const parsed = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+      if (parsed && typeof parsed.version === "string") return parsed.version;
+    } catch { /* keep walking */ }
+    const parent = dirname(dir);
+    if (parent === dir) return "0.0.0";
+    dir = parent;
+  }
+}
 
 const USAGE_TEXT = buildHelp();
 
@@ -13,6 +36,7 @@ function buildHelp(): string {
   lines.push("White — Black preview toolchain");
   lines.push("");
   lines.push(`Profile: ${PROFILE}`);
+  lines.push(`Stage:   ${STAGE}`);
   lines.push("");
   lines.push("Commands:");
   const width = Math.max(...COMMAND_ORDER.map((n) => n.length));
@@ -26,7 +50,11 @@ function buildHelp(): string {
   lines.push("  white <command> --help");
   lines.push("  white <command> --json");
   lines.push("");
-  lines.push("Phase 2 status: real lexer + parser; name resolution, typechecking, and codegen still unimplemented.");
+  lines.push("Compiler status:");
+  lines.push("  source parsing        implemented");
+  lines.push("  name resolution       implemented");
+  lines.push("  typechecking          not yet implemented");
+  lines.push("  real code generation  not yet implemented");
   return lines.join("\n");
 }
 
@@ -54,7 +82,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (first === "--version" || first === "-v") {
-    process.stdout.write("white 0.2.0 (preview-web-1, phase-2)\n");
+    process.stdout.write(`white ${PACKAGE_VERSION} (${PROFILE}, ${STAGE})\n`);
     return 0;
   }
 
@@ -160,7 +188,7 @@ function humanSummary(name: string, okStatus: boolean, result: unknown): string 
           `Backend: ${str(r["backend"])}`,
           `Stage: ${str(r["implementation_stage"])}`,
           `Targets: node=available, browser=not-yet-implemented`,
-          `Compiler: source parsing/typechecking/codegen not implemented; placeholder build only.`,
+          `Compiler: source parsing implemented; name resolution implemented; typechecking not yet implemented; real code generation not yet implemented (placeholder build only).`,
         ].join("\n");
       case "docs":
       case "query":

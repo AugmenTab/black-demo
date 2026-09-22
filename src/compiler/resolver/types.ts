@@ -3,9 +3,11 @@
 // The resolver takes the reachable module closure of a project (Parsed AST +
 // module graph), assigns every declaration an ephemeral semantic identity
 // (`DefId`), and rewrites every supported source reference into a
-// `ResolvedRef` that carries that identity. Anything the resolver cannot
-// commit to (structural fields, and — pending semantic-freeze resolution —
-// sibling `let` visibility) is preserved unresolved for a later phase.
+// `ResolvedRef` that carries that identity. References the resolver
+// intentionally cannot commit to in Phase 3 — namely structural record
+// fields, whose owning type is not known until typechecking — remain
+// unresolved for a later phase. Local `let` semantics are settled and
+// implemented (sequential, non-recursive; see resolve.ts).
 //
 // DefIds are unique **within one compiler invocation**. They are not stable
 // across builds. See phase-03.md §15 / §67 — a durable semantic index is
@@ -223,7 +225,12 @@ export type ResolvedExpr =
       // callers can distinguish it from record-field access.
       alias: string;
       aliasSpan: Span;
-      moduleId: ModuleId; // module the alias refers to
+      // Module the alias refers to. `null` only when the qualifier spelling
+      // was recognised as module syntax but names two different module
+      // identities (BLACK_MODULE_QUALIFIER_AMBIGUOUS): the node still carries
+      // source provenance so the diagnostic can be located, but no module
+      // identity is fabricated.
+      moduleId: ModuleId | null;
       ref: MaybeResolvedRef;
       span: Span;
     }

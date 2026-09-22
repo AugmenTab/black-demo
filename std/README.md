@@ -1,5 +1,5 @@
 # std
 
-Prototype Prelude and standard library will be bundled here in later phases.
+Prototype Prelude and standard library will be bundled here.
 
-Phase 1 does not ship any Black `.blk` sources under `std/`; the placeholder compiler emits hard-coded JavaScript without invoking any Black semantics.
+No physical `.blk` sources are shipped yet. Phase 3 wires the Prelude into scope via the resolver so `+`, `-`, `map`, etc. resolve during name resolution, but a bundled on-disk stdlib belongs to a later phase (currently expected alongside the Phase 5 real backend). Until then, `white build` still emits a placeholder ES module without invoking any Black semantics at runtime.

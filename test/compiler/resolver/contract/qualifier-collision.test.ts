@@ -8,11 +8,46 @@
 // module identity via multiple visibility sources is not ambiguous; the
 // visibility surfaces combine. Longer canonical paths are never made
 // ambiguous by unrelated single-segment aliases.
+//
+// Phase 3.5 additionally strengthens the expression-side asserts: after the
+// ambiguity diagnostic, structural field-access fallback is disabled, so no
+// BLACK_NAME_UNKNOWN / BLACK_TYPE_NAME_UNKNOWN / BLACK_QUALIFIED_NAME_UNKNOWN
+// is emitted for the ambiguous head or terminal (phase-03_5.md §§5-9).
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { resolveModules } from "../helpers/resolve.js";
 import type { ResolvedDeclDefinition, ResolvedExpr } from "../../../../src/compiler/resolver/types.js";
+
+// Codes that must never accompany a genuine module-qualifier ambiguity —
+// their presence would indicate that structural field-access fallback
+// (or unqualified name lookup) had spuriously fired after the ambiguity
+// diagnostic (phase-03_5.md §7).
+const NEVER_WITH_AMBIGUITY = [
+  "BLACK_NAME_UNKNOWN",
+  "BLACK_TYPE_NAME_UNKNOWN",
+  "BLACK_QUALIFIED_NAME_UNKNOWN",
+] as const;
+
+function assertOnlyAmbiguity(codes: string[], expectedCount: number): void {
+  const ambiguous = codes.filter((c) => c === "BLACK_MODULE_QUALIFIER_AMBIGUOUS");
+  assert.equal(
+    ambiguous.length,
+    expectedCount,
+    `expected exactly ${expectedCount} BLACK_MODULE_QUALIFIER_AMBIGUOUS diagnostic(s); got ${codes.join(", ")}`,
+  );
+  for (const forbidden of NEVER_WITH_AMBIGUITY) {
+    assert.ok(
+      !codes.includes(forbidden),
+      `${forbidden} must not accompany a module-qualifier ambiguity; got ${codes.join(", ")}`,
+    );
+  }
+  assert.equal(
+    codes.length,
+    expectedCount,
+    `expected exactly ${expectedCount} error(s); got ${codes.join(", ")}`,
+  );
+}
 
 function getMain(o: Awaited<ReturnType<typeof resolveModules>>) {
   return o.result.program?.modules.get("Main");
@@ -41,10 +76,7 @@ test("§13 alias and canonical qualifier bound to different modules is ambiguous
     "Bar.blk": "module Bar (x)\n\nx = 2\n",
   });
   try {
-    assert.ok(
-      o.errors.some((d) => d.code === "BLACK_MODULE_QUALIFIER_AMBIGUOUS"),
-      `expected BLACK_MODULE_QUALIFIER_AMBIGUOUS; got ${o.errors.map((e) => e.code).join(", ")}`,
-    );
+    assertOnlyAmbiguity(o.errors.map((e) => e.code), 1);
   } finally {
     await o.cleanup();
   }
@@ -66,10 +98,7 @@ test("§13 reverse import order produces identical ambiguity", async () => {
     "Bar.blk": "module Bar (x)\n\nx = 2\n",
   });
   try {
-    assert.ok(
-      o.errors.some((d) => d.code === "BLACK_MODULE_QUALIFIER_AMBIGUOUS"),
-      `expected BLACK_MODULE_QUALIFIER_AMBIGUOUS; got ${o.errors.map((e) => e.code).join(", ")}`,
-    );
+    assertOnlyAmbiguity(o.errors.map((e) => e.code), 1);
   } finally {
     await o.cleanup();
   }
@@ -91,10 +120,7 @@ test("§13 member existing only on canonical target does not disambiguate", asyn
     "Bar.blk": "module Bar (barOnly)\n\nbarOnly = 2\n",
   });
   try {
-    assert.ok(
-      o.errors.some((d) => d.code === "BLACK_MODULE_QUALIFIER_AMBIGUOUS"),
-      `expected BLACK_MODULE_QUALIFIER_AMBIGUOUS even though only Foo exports fooOnly; got ${o.errors.map((e) => e.code).join(", ")}`,
-    );
+    assertOnlyAmbiguity(o.errors.map((e) => e.code), 1);
   } finally {
     await o.cleanup();
   }
@@ -116,10 +142,7 @@ test("§13 member existing only on alias target does not disambiguate", async ()
     "Bar.blk": "module Bar (barOnly)\n\nbarOnly = 2\n",
   });
   try {
-    assert.ok(
-      o.errors.some((d) => d.code === "BLACK_MODULE_QUALIFIER_AMBIGUOUS"),
-      `expected BLACK_MODULE_QUALIFIER_AMBIGUOUS even though only Bar exports barOnly; got ${o.errors.map((e) => e.code).join(", ")}`,
-    );
+    assertOnlyAmbiguity(o.errors.map((e) => e.code), 1);
   } finally {
     await o.cleanup();
   }
@@ -351,10 +374,11 @@ test("§20 type qualifier collision across different modules is qualifier-ambigu
     ].join("\n") + "\n",
   });
   try {
-    assert.ok(
-      o.errors.some((d) => d.code === "BLACK_MODULE_QUALIFIER_AMBIGUOUS"),
-      `expected type qualifier ambiguity; got ${o.errors.map((e) => e.code).join(", ")}`,
-    );
+    // The signature contains two `Foo.T` uses — each is an independent
+    // qualifier use, so the resolver emits exactly two ambiguity diagnostics
+    // and nothing else. In particular, no BLACK_TYPE_NAME_UNKNOWN /
+    // BLACK_QUALIFIED_NAME_UNKNOWN incidentally follows the ambiguity.
+    assertOnlyAmbiguity(o.errors.map((e) => e.code), 2);
   } finally {
     await o.cleanup();
   }
@@ -388,10 +412,9 @@ test("§21 pattern qualifier collision across different modules is qualifier-amb
     ].join("\n") + "\n",
   });
   try {
-    assert.ok(
-      o.errors.some((d) => d.code === "BLACK_MODULE_QUALIFIER_AMBIGUOUS"),
-      `expected pattern qualifier ambiguity; got ${o.errors.map((e) => e.code).join(", ")}`,
-    );
+    // Pattern-side ambiguity emits exactly one diagnostic and never a
+    // stray BLACK_NAME_UNKNOWN / BLACK_QUALIFIED_NAME_UNKNOWN follow-up.
+    assertOnlyAmbiguity(o.errors.map((e) => e.code), 1);
   } finally {
     await o.cleanup();
   }

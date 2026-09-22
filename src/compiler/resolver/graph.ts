@@ -13,7 +13,7 @@ import type { ImportDecl } from "../ast.js";
 
 export interface ModuleGraphResult {
   hardFailure: boolean;
-  loadOrder: ModuleId[]; // reverse-postorder topological ordering
+  loadOrder: ModuleId[]; // topological order: dependencies precede dependents
   diagnostics: Diagnostic[];
 }
 
@@ -132,8 +132,8 @@ export function buildModuleGraph(
   }
 
   const hardFailure = diagnostics.length > 0;
-  // Postorder is the topological order of *finish* times; reversing it puts
-  // dependencies before dependents.
+  // DFS-postorder already puts a node after its descendants, so this list has
+  // dependencies before dependents — the correct load order without reversal.
   const loadOrder = postorder.slice();
   return { hardFailure, loadOrder, diagnostics };
 }

@@ -23,8 +23,8 @@ export const capabilitiesCommand: CommandDefinition = {
         placeholder_build: true,
       },
       notes: [
-        "Phase 2 lexes and parses Black source; unparseable programs are rejected before build.",
-        "Phase 3 resolves the reachable module closure: module identities, exports, imports (selected + qualified), lexical scopes, and Prelude are all live.",
+        "Black source is lexed and parsed; unparseable programs are rejected before build.",
+        "Name resolution runs across the reachable module closure: module identities, exports, imports (selected + qualified), lexical scopes, and Prelude are all live.",
         "Typechecking and real code generation are still unimplemented.",
         "The placeholder build still emits a fixed marker; genuine Black-to-JavaScript emission belongs to Phase 5.",
       ],

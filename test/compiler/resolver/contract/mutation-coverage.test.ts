@@ -1,4 +1,4 @@
-// Contract tests that specifically catch mutation campaign items M1–M15 (§97).
+// Contract tests that specifically catch mutation campaign items M1–M34.
 // Each test asserts a behavior that the corresponding mutation would break.
 
 import { test } from "node:test";
@@ -644,6 +644,47 @@ test("[M33] same-module visibility unions across sources — Foo.y visible via a
     if (body.kind !== "ExprQualified") return;
     if ("kind" in body.ref) throw new Error("Foo.y must resolve");
     assert.equal(body.ref.id.value, yId.value);
+  } finally {
+    await o.cleanup();
+  }
+});
+
+// M34 — a mutation that collapses `ambiguous` back into `no-qualifier` on
+// expression qualification (letting `Foo.x` fall through to structural
+// field access after the ambiguity diagnostic has already been recorded)
+// must be caught. In the presence of a genuine alias/canonical module-name
+// collision, the fall-through would re-emit BLACK_NAME_UNKNOWN for the
+// head `Foo` — this test asserts that exactly ONE ambiguity diagnostic is
+// emitted, with no accompanying BLACK_NAME_UNKNOWN /
+// BLACK_TYPE_NAME_UNKNOWN / BLACK_QUALIFIED_NAME_UNKNOWN (phase-03_5.md
+// §§4-7, 12).
+test("[M34] ambiguous expression qualifier must NOT fall through to structural field access", async () => {
+  const o = await resolveModules({
+    "Main.blk": [
+      "module Main (main)",
+      "",
+      "import Foo (x)",
+      "import Bar as Foo",
+      "",
+      "main = Foo.x",
+    ].join("\n") + "\n",
+    "Foo.blk": "module Foo (x)\n\nx = 1\n",
+    "Bar.blk": "module Bar (x)\n\nx = 2\n",
+  });
+  try {
+    const codes = o.errors.map((e) => e.code);
+    assert.equal(
+      codes.filter((c) => c === "BLACK_MODULE_QUALIFIER_AMBIGUOUS").length,
+      1,
+      `expected exactly one ambiguity diagnostic; got ${codes.join(", ")}`,
+    );
+    for (const forbidden of ["BLACK_NAME_UNKNOWN", "BLACK_TYPE_NAME_UNKNOWN", "BLACK_QUALIFIED_NAME_UNKNOWN"]) {
+      assert.ok(
+        !codes.includes(forbidden),
+        `${forbidden} must not accompany the ambiguity diagnostic; got ${codes.join(", ")}`,
+      );
+    }
+    assert.equal(codes.length, 1, `expected exactly 1 error; got ${codes.join(", ")}`);
   } finally {
     await o.cleanup();
   }

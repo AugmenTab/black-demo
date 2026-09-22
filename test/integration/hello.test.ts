@@ -15,7 +15,7 @@ async function cleanDist(): Promise<void> {
   await rm(HELLO_DIST, { recursive: true, force: true });
 }
 
-test("Phase 2 end-to-end: check + build + run against examples/hello", async () => {
+test("end-to-end: check + build + run against examples/hello", async () => {
   await cleanDist();
 
   const check = await runCli(["check"], { cwd: HELLO_DIR });

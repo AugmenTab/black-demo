@@ -4,7 +4,19 @@ Disposable vertical-slice implementation of the Black language and White toolcha
 
 **This is not the production Black compiler.** See [`docs/DEMO_PROFILE.md`](docs/DEMO_PROFILE.md) for the authoritative contract: what the demo compiler accepts, what it intentionally omits, what platform runtime is provided, and what this project is forbidden from turning into.
 
-Phase status: **Phase 1 (walking skeleton)** complete. White CLI, project discovery, placeholder compiler, and end-to-end `check/build/run` pipeline are in place. Black syntax is **not** parsed or compiled yet — that lands in Phase 2.
+## Phase status
+
+| Phase | Scope                                         | Status                                   |
+| ----- | --------------------------------------------- | ---------------------------------------- |
+| 0     | Demo contract                                 | complete                                 |
+| 0.5   | Dockerised dev environment                    | complete                                 |
+| 1     | White walking skeleton                        | complete                                 |
+| 2     | Black lexer + parser                          | complete                                 |
+| 3     | Module graph + name resolution                | complete                                 |
+| 4     | Typechecker                                   | not yet implemented                      |
+| 5     | Real Black-to-JavaScript backend              | not yet implemented                      |
+
+`white build` still emits a fixed placeholder ES module — genuine Black-to-JavaScript emission lands in Phase 5.
 
 ---
 
@@ -47,6 +59,14 @@ docker compose run --rm --workdir /workspace/examples/hello dev \
 # → Black preview pipeline alive.
 ```
 
+For quick one-off invocations, `./scripts/white <project> <subcommand> [args…]` wraps the containerised CLI:
+
+```bash
+./scripts/white examples/hello check
+./scripts/white examples/hello check --json
+./scripts/white examples/multi-module check
+```
+
 Every White command supports `--json` for machine-readable output.
 
 ## Repository layout
@@ -54,25 +74,27 @@ Every White command supports `--json` for machine-readable output.
 ```text
 src/
   white/            CLI, project discovery, config, output/diagnostics, commands
-  compiler/         Placeholder compiler boundary (Phase 2 replaces this)
-  runtime/          Reserved for Platform.* runtime modules
-std/                Reserved for the bundled prototype Prelude/std
+  compiler/         Black lexer, parser, module graph + name resolver
+                    (typechecker and real backend not yet implemented)
+  runtime/          Reserved for Platform.* runtime modules (Phase 5)
+std/                Reserved for the bundled prototype Prelude/std (Phase 5)
 examples/
   hello/            Minimal fixture project used by the smoke test
+  multi-module/     Multi-module fixture covering imports + qualification
 reference/          Reserved for reference Polygon Pong (kept hidden from blind agents)
 test/
-  cli/              CLI dispatch, --help, --json
+  cli/              CLI dispatch, --help, --version, --json
   project/          Discovery + config unit tests
-  integration/      End-to-end pipeline against examples/hello
+  compiler/         Lexer, parser, resolver contract tests
+  integration/      End-to-end pipeline against example projects
   helpers/          Test-only helpers
 docs/               DEMO_PROFILE.md (Phase 0 authority)
 scripts/            Repository automation
 ```
 
-## Phase 1 limitations
+## Current limitations
 
-- No Black lexer, parser, AST, or typechecker.
-- `white check` validates project infrastructure only.
-- `white build` runs a placeholder compiler that reads the `.blk` entry but ignores its contents; it emits a hard-coded ES module printing `Black preview pipeline alive.`
+- No Black typechecker; type errors are not diagnosed.
+- `white build` runs a placeholder backend that emits a hard-coded ES module printing `Black preview pipeline alive.` — real Black-to-JavaScript emission belongs to Phase 5.
 - `white docs`, `white query`, and `white test` are deliberate placeholders reporting `not_yet_implemented`.
-- `white capabilities` truthfully reports the walking-skeleton stage.
+- `white capabilities` truthfully reports the current `phase-3-name-resolution` stage.
