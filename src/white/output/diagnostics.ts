@@ -106,4 +106,22 @@ export const codes = {
   moduleAliasUnknown: "BLACK_MODULE_ALIAS_UNKNOWN",
   moduleQualifierAmbiguous: "BLACK_MODULE_QUALIFIER_AMBIGUOUS",
   qualifiedNameUnknown: "BLACK_QUALIFIED_NAME_UNKNOWN",
+
+  // ---------- Phase 4: typechecking ----------
+  typeMismatch: "BLACK_TYPE_MISMATCH",
+  typeBadArgument: "BLACK_BAD_ARGUMENT",
+  typeUnknownField: "BLACK_UNKNOWN_FIELD",
+  typeMissingField: "BLACK_MISSING_FIELD",
+  typeBadConstructorPayload: "BLACK_BAD_CONSTRUCTOR_PAYLOAD",
+  typeNonExhaustiveCase: "BLACK_NON_EXHAUSTIVE_CASE",
+  typeNonExhaustiveFunction: "BLACK_NON_EXHAUSTIVE_FUNCTION",
+  typeMissingSignature: "BLACK_TYPE_MISSING_SIGNATURE",
+  typeMissingDefinition: "BLACK_TYPE_MISSING_DEFINITION",
+  typeArityMismatch: "BLACK_TYPE_ARITY_MISMATCH",
+  typeAliasCycle: "BLACK_TYPE_ALIAS_CYCLE",
+  typeAmbiguous: "BLACK_TYPE_AMBIGUOUS",
+  typeOccursCheck: "BLACK_TYPE_OCCURS_CHECK",
+  typeUnboundVariable: "BLACK_TYPE_UNBOUND_VARIABLE",
+  typeDuplicateRecordField: "BLACK_DUPLICATE_RECORD_FIELD",
+  typeUnsupportedFeature: "BLACK_UNSUPPORTED_FEATURE",
 } as const;

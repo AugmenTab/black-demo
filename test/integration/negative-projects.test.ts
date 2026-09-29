@@ -292,13 +292,112 @@ test("negative: alias/canonical qualifier collision → BLACK_MODULE_QUALIFIER_A
   }
 });
 
+// phase-04_1.md §44: project-level failures for typecheck errors. All must
+// fail on check/build/run and never execute a stale placeholder.
+
+test("negative: genuinely ambiguous numeric operator → BLACK_TYPE_AMBIGUOUS", async () => {
+  await expectFail(
+    {
+      "Main.blk": [
+        "module Main (main)",
+        "",
+        "add :: Int",
+        "add =",
+        "  let f x y = x + y",
+        "  in 0",
+        "",
+        "main :: ()",
+        "main = ()",
+      ].join("\n") + "\n",
+    },
+    "BLACK_TYPE_AMBIGUOUS",
+  );
+});
+
+test("negative: conditional-guard-only partial function → BLACK_NON_EXHAUSTIVE_FUNCTION", async () => {
+  await expectFail(
+    {
+      "Main.blk": [
+        "module Main (main)",
+        "",
+        "f :: Bool -> Int",
+        "f x",
+        "  | x = 1",
+        "",
+        "main :: ()",
+        "main = ()",
+      ].join("\n") + "\n",
+    },
+    "BLACK_NON_EXHAUSTIVE_FUNCTION",
+  );
+});
+
+test("negative: missing required record field → BLACK_MISSING_FIELD", async () => {
+  await expectFail(
+    {
+      "Main.blk": [
+        "module Main (main)",
+        "",
+        "type Point = { x :: Int, y :: Int }",
+        "",
+        "p :: Point",
+        "p = { x = 1 }",
+        "",
+        "main :: ()",
+        "main = ()",
+      ].join("\n") + "\n",
+    },
+    "BLACK_MISSING_FIELD",
+  );
+});
+
+test("negative: wrong constructor payload → BLACK_BAD_CONSTRUCTOR_PAYLOAD", async () => {
+  await expectFail(
+    {
+      "Main.blk": [
+        "module Main (main)",
+        "",
+        "type Box = | Box Int",
+        "",
+        "bad :: Box",
+        "bad = Box \"hello\"",
+        "",
+        "main :: ()",
+        "main = ()",
+      ].join("\n") + "\n",
+    },
+    "BLACK_BAD_CONSTRUCTOR_PAYLOAD",
+  );
+});
+
+test("negative: refutable local-function pattern → BLACK_NON_EXHAUSTIVE_FUNCTION", async () => {
+  await expectFail(
+    {
+      "Main.blk": [
+        "module Main (main)",
+        "",
+        "type Choice = | A Int | B Int",
+        "",
+        "extract :: Choice -> Int",
+        "extract c =",
+        "  let go (A x) = x",
+        "  in go c",
+        "",
+        "main :: ()",
+        "main = ()",
+      ].join("\n") + "\n",
+    },
+    "BLACK_NON_EXHAUSTIVE_FUNCTION",
+  );
+});
+
 // §20 — stale-artifact guard. If a project builds successfully, then the
 // source is edited into an unresolvable state, `white run` must NOT reuse the
 // previously-built `dist/main.mjs`; the placeholder marker from the stale
 // build must not appear on run's stdout.
 test("negative: stale artifact is not executed when subsequent build fails", async () => {
   const p = await makeProject({
-    "Main.blk": "module Main (main)\n\nmain = ()\n",
+    "Main.blk": "module Main (main)\n\nmain :: ()\nmain = ()\n",
   });
   try {
     const build = await runCli(["build", "--json"], { cwd: p.cwd });
@@ -310,7 +409,7 @@ test("negative: stale artifact is not executed when subsequent build fails", asy
     // Corrupt the source into an unresolvable state.
     await writeFile(
       path.join(p.cwd, "src", "Main.blk"),
-      "module Main (main)\n\nmain = ghost\n",
+      "module Main (main)\n\nmain :: ()\nmain = ghost\n",
       "utf8",
     );
 

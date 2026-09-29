@@ -13,7 +13,7 @@ Disposable vertical-slice implementation of the Black language and White toolcha
 | 1     | White walking skeleton                        | complete                                 |
 | 2     | Black lexer + parser                          | complete                                 |
 | 3     | Module graph + name resolution                | complete                                 |
-| 4     | Typechecker                                   | not yet implemented                      |
+| 4     | Typechecker                                   | complete                                 |
 | 5     | Real Black-to-JavaScript backend              | not yet implemented                      |
 
 `white build` still emits a fixed placeholder ES module — genuine Black-to-JavaScript emission lands in Phase 5.
@@ -94,7 +94,7 @@ scripts/            Repository automation
 
 ## Current limitations
 
-- No Black typechecker; type errors are not diagnosed.
+- The typechecker covers the preview subset only (Hindley–Milner inference, records, closed variants, exhaustiveness); no effects, classes, or open rows.
 - `white build` runs a placeholder backend that emits a hard-coded ES module printing `Black preview pipeline alive.` — real Black-to-JavaScript emission belongs to Phase 5.
 - `white docs`, `white query`, and `white test` are deliberate placeholders reporting `not_yet_implemented`.
-- `white capabilities` truthfully reports the current `phase-3-name-resolution` stage.
+- `white capabilities` truthfully reports the current `phase-4-typechecking` stage.

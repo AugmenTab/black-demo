@@ -1358,6 +1358,19 @@ class ModuleResolver {
       }
       case "ExprInfix": {
         const opId = this.prelude.operators.get(e.op);
+        if (!opId) {
+          this.diagnostics.push(
+            makeDiagnostic({
+              code: codes.nameUnknown,
+              kind: "resolve",
+              severity: "error",
+              message: `operator '${e.op}' is not defined in the Prelude`,
+              file: this.record.file,
+              span: toSpan(e.opSpan),
+              details: { name: e.op, namespace: "term" },
+            }),
+          );
+        }
         const opRef: MaybeResolvedRef = opId
           ? { id: opId, namespace: "term", name: e.op, span: e.opSpan }
           : { kind: "unresolved", name: e.op, namespace: "term", span: e.opSpan };

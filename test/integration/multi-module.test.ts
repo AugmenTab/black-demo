@@ -16,13 +16,14 @@ test("Phase 3 end-to-end: multi-module project resolves and builds", async () =>
 
   const check = await runCli(["check"], { cwd: MM_DIR });
   assert.equal(check.code, 0, `check failed: ${check.stdout}${check.stderr}`);
-  assert.match(check.stdout, /Names resolved across 3 reachable module/);
+  assert.match(check.stdout, /Names resolved and types checked across 3 reachable module/);
 
   const checkJson = await runCli(["check", "--json"], { cwd: MM_DIR });
   assert.equal(checkJson.code, 0);
   const env = JSON.parse(checkJson.stdout);
   assert.equal(env.ok, true);
   assert.equal(env.result.namesResolved, true);
+  assert.equal(env.result.typesChecked, true);
   assert.equal(env.result.modulesLoaded, 3);
 
   const build = await runCli(["build"], { cwd: MM_DIR });

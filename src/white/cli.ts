@@ -9,7 +9,7 @@ import { renderJson } from "./output/render-json.js";
 import { PROFILE, fail, makeDiagnostic } from "./output/diagnostics.js";
 import type { CommandDefinition } from "./commands/shared.js";
 
-const STAGE = "phase-3-name-resolution";
+const STAGE = "phase-4-typechecking";
 const PACKAGE_VERSION = readPackageVersion();
 
 // Walk upward from this file until finding the project's package.json — this
@@ -53,7 +53,7 @@ function buildHelp(): string {
   lines.push("Compiler status:");
   lines.push("  source parsing        implemented");
   lines.push("  name resolution       implemented");
-  lines.push("  typechecking          not yet implemented");
+  lines.push("  typechecking          implemented");
   lines.push("  real code generation  not yet implemented");
   return lines.join("\n");
 }
@@ -168,7 +168,7 @@ function humanSummary(name: string, okStatus: boolean, result: unknown): string 
           `  project: ${str(r["projectRoot"])}`,
           `  entry:   ${str(r["entry"])}`,
           `  profile: ${str(r["profile"])} (target: ${str(r["target"])})`,
-          `Black syntax valid. Names resolved across ${String(r["modulesLoaded"] ?? 0)} reachable module(s).`,
+          `Black syntax valid. Names resolved and types checked across ${String(r["modulesLoaded"] ?? 0)} reachable module(s).`,
         ].join("\n");
       case "build": {
         const artifacts = Array.isArray(r["artifacts"]) ? (r["artifacts"] as Array<{ path: string }>) : [];
@@ -176,7 +176,7 @@ function humanSummary(name: string, okStatus: boolean, result: unknown): string 
         return [
           `Placeholder build completed (${String(r["modulesResolved"] ?? 0)} module(s) resolved).`,
           paths,
-          `Names resolved across the reachable module closure; JavaScript emission is still a placeholder.`,
+          `Names resolved and typechecking succeeded across the reachable module closure; JavaScript emission is still a placeholder.`,
         ].join("\n");
       }
       case "run":
@@ -188,7 +188,7 @@ function humanSummary(name: string, okStatus: boolean, result: unknown): string 
           `Backend: ${str(r["backend"])}`,
           `Stage: ${str(r["implementation_stage"])}`,
           `Targets: node=available, browser=not-yet-implemented`,
-          `Compiler: source parsing implemented; name resolution implemented; typechecking not yet implemented; real code generation not yet implemented (placeholder build only).`,
+          `Compiler: source parsing implemented; name resolution implemented; typechecking implemented; real code generation not yet implemented (placeholder build only).`,
         ].join("\n");
       case "docs":
       case "query":

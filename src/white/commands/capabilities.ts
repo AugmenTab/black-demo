@@ -9,7 +9,7 @@ export const capabilitiesCommand: CommandDefinition = {
     return ok("capabilities", {
       language: "Black",
       profile: "preview-web-1",
-      implementation_stage: "phase-3-name-resolution",
+      implementation_stage: "phase-4-typechecking",
       backend: "javascript-es-modules",
       targets: {
         node: "available",
@@ -18,14 +18,15 @@ export const capabilitiesCommand: CommandDefinition = {
       compiler: {
         source_parsing: true,
         name_resolution: true,
-        typechecking: false,
+        typechecking: true,
         source_codegen: false,
         placeholder_build: true,
       },
       notes: [
         "Black source is lexed and parsed; unparseable programs are rejected before build.",
         "Name resolution runs across the reachable module closure: module identities, exports, imports (selected + qualified), lexical scopes, and Prelude are all live.",
-        "Typechecking and real code generation are still unimplemented.",
+        "Typechecking is live: explicit top-level signatures are required and checked; rank-1 polymorphism, closed records/variants, exhaustiveness, and Prelude operator overloading are enforced.",
+        "Real code generation is still unimplemented.",
         "The placeholder build still emits a fixed marker; genuine Black-to-JavaScript emission belongs to Phase 5.",
       ],
     });

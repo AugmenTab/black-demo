@@ -9,21 +9,26 @@ test("capabilities runs without a project and reports the walking-skeleton stage
   assert.match(stdout, /placeholder|Placeholder|walking skeleton/);
 });
 
-// phase-03_5.md §§17, 18 — human capabilities output must convey the same
-// truths as the JSON payload: Phase 3/name-resolution stage, parsing +
-// resolution implemented, typechecking and real codegen unavailable.
-test("capabilities human output describes the phase-3 name-resolution stage truthfully", async () => {
+// phase-04.md — human capabilities output must convey the same truths as the
+// JSON payload: Phase 4/typechecking stage, parsing + resolution +
+// typechecking implemented, real codegen still unavailable.
+test("capabilities human output describes the phase-4 typechecking stage truthfully", async () => {
   const { code, stdout } = await runCli(["capabilities"], { cwd: "/tmp" });
   assert.equal(code, 0);
-  assert.match(stdout, /phase-3-name-resolution/);
+  assert.match(stdout, /phase-4-typechecking/);
   assert.match(stdout, /source parsing implemented/);
   assert.match(stdout, /name resolution implemented/);
-  assert.match(stdout, /typechecking not yet implemented/);
+  assert.match(stdout, /typechecking implemented/);
   assert.match(stdout, /real code generation not yet implemented/);
   assert.doesNotMatch(
     stdout,
     /source parsing.*not implemented/,
     "human capabilities must not still claim source parsing is not implemented",
+  );
+  assert.doesNotMatch(
+    stdout,
+    /typechecking not yet implemented/,
+    "human capabilities must not still claim typechecking is not implemented",
   );
 });
 

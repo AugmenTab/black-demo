@@ -12,35 +12,60 @@ import Utils (a)
 import Utils as Utils
 
 -- Unqualified access — from the selected import.
+shapeUnq :: Shape
 shapeUnq = Circle
+
+areaUnq :: Int
 areaUnq = area shapeUnq
 
 -- Canonical selected access — same DefIds as the unqualified forms.
+shapeCanonical :: Shape
 shapeCanonical = Game.Model.Circle
+
+areaCanonical :: Int
 areaCanonical = Game.Model.area shapeCanonical
 
 -- Alias access — reaches the module's full exported interface.
+shapeAlias :: Shape
 shapeAlias = Model.Circle
+
+areaAlias :: Int
 areaAlias = Model.area shapeAlias
 
 -- Alias reaches an export that was NOT selected. This declaration is
 -- deliberately invisible unqualified and under the canonical `Game.Model`
 -- qualifier; see test/integration/negative-projects.test.ts for the negative
 -- side of this matrix.
+onlyViaAlias :: Int
 onlyViaAlias = Model.hiddenFromSelection
 
 -- Same-module coexistence: `Utils.a` is available via the canonical scope
 -- from the selected import; `Utils.b` is available only through the alias
 -- interface. Identity collapse means neither reference is ambiguous.
+utilsFromCanonical :: Int
 utilsFromCanonical = Utils.a
+
+utilsFromAlias :: Int
 utilsFromAlias = Utils.b
 
+sequential :: Int
 sequential =
   let
     first = 1
     second = first
   in
     second
+
+-- Qualified constructor pattern (phase-04_1.md §43): match on the fully
+-- qualified constructor form. Both `Game.Model.Circle` and `Model.Circle`
+-- must be accepted as constructor patterns keyed by the same DefId as the
+-- unqualified `Circle`.
+classify :: Shape -> Int
+classify s =
+  case s of
+    Game.Model.Circle -> 1
+    Model.Square -> 2
+    Triangle -> 3
 
 main :: ()
 main =
