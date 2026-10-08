@@ -528,7 +528,7 @@ test("[M44] cross-module constructor with identical spelling is not compatible",
 // from different variants must not count as coverage for each other's
 // constructor slot. The exhaustiveness matrix keys on constructor DefId,
 // not on the source-written textual name.
-test("[M44 exhaustiveness §5] same-spelled cross-module constructor does not cover the scrutinee's slot", async () => {
+test("[M64 baseline] BState case omitting B.Ready is non-exhaustive", async () => {
   // We construct a scenario where a partial case over `BState` handles
   // only `B.Done`, and a mutated exhaustiveness engine keyed by name
   // could not confuse a stray `A.Ready` for coverage of `B.Ready` even
@@ -571,6 +571,60 @@ test("[M44 exhaustiveness §5] same-spelled cross-module constructor does not co
     assert.ok(
       o.errorCodes.includes("BLACK_NON_EXHAUSTIVE_CASE"),
       `expected BLACK_NON_EXHAUSTIVE_CASE; got ${o.errorCodes.join(", ")}`,
+    );
+  } finally {
+    await o.cleanup();
+  }
+});
+
+// M64 — exhaustiveness groups alternatives by semantic constructor identity,
+// not spelling. A foreign `A.Ready` arm must NOT cover `B.Ready`. The
+// pattern `A.Ready` is itself a type mismatch (M44), but exhaustiveness
+// still runs over the typed patterns, so under the correct compiler BOTH
+// BLACK_TYPE_MISMATCH and BLACK_NON_EXHAUSTIVE_CASE (B.Ready uncovered) are
+// reported. A spelling-keyed exhaustiveness engine would treat `A.Ready` as
+// covering `B.Ready` and drop the non-exhaustive diagnostic.
+test("[M64] foreign same-spelled constructor does not cover B.Ready in exhaustiveness", async () => {
+  const o = await typecheckModules({
+    "A.blk": [
+      "module A (AState (..))",
+      "",
+      "type AState =",
+      "  | Ready Int",
+      "  | Waiting",
+    ].join("\n") + "\n",
+    "B.blk": [
+      "module B (BState (..))",
+      "",
+      "type BState =",
+      "  | Ready Int",
+      "  | Done",
+    ].join("\n") + "\n",
+    "Main.blk": [
+      "module Main (main)",
+      "",
+      "import A (AState (..))",
+      "import B (BState (..))",
+      "",
+      "bad :: B.BState -> Int",
+      "bad state =",
+      "  case state of",
+      "    A.Ready n -> n",
+      "    B.Done -> 0",
+      "",
+      "main :: Int",
+      "main = bad B.Done",
+    ].join("\n") + "\n",
+  });
+  try {
+    assert.ok(!o.ok, `expected failure; got ok=${o.ok}`);
+    assert.ok(
+      o.errorCodes.includes("BLACK_TYPE_MISMATCH"),
+      `expected BLACK_TYPE_MISMATCH; got ${o.errorCodes.join(", ")}`,
+    );
+    assert.ok(
+      o.errorCodes.includes("BLACK_NON_EXHAUSTIVE_CASE"),
+      `expected BLACK_NON_EXHAUSTIVE_CASE (B.Ready uncovered); got ${o.errorCodes.join(", ")}`,
     );
   } finally {
     await o.cleanup();
