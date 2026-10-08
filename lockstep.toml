@@ -57,3 +57,11 @@ phase_gate_commands = [
     "cd /workspace && npm ci && npm test"
   ]
 ]
+
+verification_prefix_argv = [
+  "docker",
+  "compose",
+  "run",
+  "--rm",
+  "dev"
+]
