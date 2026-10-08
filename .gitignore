@@ -5,3 +5,4 @@ coverage/
 *.log
 examples/*/dist/
 reference/*/dist/
+.local/lockstep-runtime/

@@ -1,0 +1,28 @@
+schema_version = 1
+
+[routing.planner]
+provider = "claude"
+model = "claude-opus-5-5"
+effort = "medium"
+billing_mode = "subscription_only"
+
+[routing.implementer]
+provider = "claude"
+model = "claude-opus-5-5"
+effort = "medium"
+billing_mode = "subscription_only"
+
+[routing.reviewer]
+provider = "claude"
+model = "claude-opus-5-5"
+effort = "medium"
+billing_mode = "subscription_only"
+
+[execution]
+baseline_argv = ["./scripts/test"]
+planner_quality_argv = ["docker", "compose", "run", "--rm", "dev", "npm", "run", "build"]
+agent_timeout_seconds = 900.0
+command_timeout_seconds = 600.0
+phase_gate_commands = [
+  ["./scripts/test"]
+]
