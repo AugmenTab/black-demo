@@ -19,10 +19,41 @@ effort = "medium"
 billing_mode = "subscription_only"
 
 [execution]
-baseline_argv = ["./scripts/test"]
-planner_quality_argv = ["docker", "compose", "run", "--rm", "dev", "npm", "run", "build"]
+baseline_argv = [
+  "docker",
+  "compose",
+  "run",
+  "--rm",
+  "dev",
+  "bash",
+  "-lc",
+  'cd /workspace && npm ci >/dev/null && npm run build >/dev/null && p="$1" && node --test "dist/${p%.ts}.js"',
+  "--"
+]
+
+planner_quality_argv = [
+  "docker",
+  "compose",
+  "run",
+  "--rm",
+  "dev",
+  "bash",
+  "-lc",
+  "cd /workspace && npm ci && npm run build"
+]
+
 agent_timeout_seconds = 900.0
 command_timeout_seconds = 600.0
+
 phase_gate_commands = [
-  ["./scripts/test"]
+  [
+    "docker",
+    "compose",
+    "run",
+    "--rm",
+    "dev",
+    "bash",
+    "-lc",
+    "cd /workspace && npm ci && npm test"
+  ]
 ]
