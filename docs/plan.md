@@ -16,30 +16,19 @@ The authoritative product requirements are:
 docs/prd.md
 ```
 
-The finished application must be publicly deployed to **Railway** under:
+The finished application must be publicly deployed to Railway under:
 
 ```text
 black-demo
 ```
 
-The task is complete only when the application is implemented, verified, deployed, and a public playable HTTPS URL has been produced.
+The task is complete when the application is implemented, verified, deployed, and a public playable HTTPS URL has been produced.
 
 ---
 
-## 2. Important Context
+## 2. Experiment Rules
 
 Assume no prior knowledge of Black.
-
-Do not infer Black syntax, APIs, project structure, or behavior from other programming languages.
-
-Do not search for:
-
-- an existing Polygon Pong implementation;
-- a reference implementation;
-- an earlier version of this project;
-- old Black demos;
-- previous transcripts;
-- another Black application to copy.
 
 Learn Black and its available platform/tooling beginning with:
 
@@ -51,360 +40,166 @@ The PRD tells you **what to build**.
 
 White tells you **how Black works**.
 
----
-
-## 3. Authoritative Sources and Web Research
-
 For Black-specific information, use:
 
 ```text
 docs/prd.md
-white and the documentation/tooling reachable through white
-the Black source you create in this repository
+White and the documentation/tooling reachable through White
+the Black source you create during this task
 ```
 
-Do not search the web for Black or White documentation.
-
-Do not search GitHub, package indexes, web search engines, local neighboring repositories, or other external sources for:
+Do not search externally for:
 
 - Black syntax;
-- White commands beyond what White itself exposes;
-- Black Platform APIs;
-- prior Polygon Pong implementations;
-- previous versions of this project;
+- White documentation;
+- Black platform APIs;
+- previous Black applications;
+- previous Polygon Pong implementations;
+- reference implementations;
+- earlier runs or transcripts;
 - solution code for this task.
 
-### General web research is allowed
+General web research is allowed for ordinary non-Black technologies and concepts, including:
 
-Ordinary web research is permitted for **non-Black-specific technical information**, including subjects such as:
+- browser APIs;
+- WebSockets;
+- Canvas;
+- Clipboard behavior;
+- Railway;
+- HTTP/HTTPS;
+- geometry;
+- collision mathematics;
+- responsive web behavior.
 
-```text
-WebSocket behavior
-browser APIs
-Clipboard API behavior and permissions
-Canvas behavior
-pointer/touch events
-QR-code libraries
-Railway documentation
-HTTP/HTTPS behavior
-geometry
-collision mathematics
-responsive browser behavior
-```
+When general web information and Black-specific behavior overlap, White is authoritative about what Black provides.
 
-Use general research to understand external technologies, not to locate a solution to this project.
+Application and game logic must be implemented in Black.
 
-When Black-specific and general-platform concerns overlap, White remains authoritative about what Black exposes.
+Any non-Black exception must be explicitly permitted by `docs/prd.md`.
 
 ---
 
-## 4. External QR Library Permission
+## 3. Prepared Environment
 
-Black does not need to implement QR encoding itself.
+The experiment environment has already been prepared and verified.
 
-If required to satisfy the PRD, one small external JavaScript QR-code library may be used for:
-
-```text
-QR encoding
-QR rendering
-```
-
-only.
-
-This exception does **not** permit writing application logic in JavaScript.
-
-The following must remain implemented in Black:
+The following are available:
 
 ```text
-rooms
-player state
-protocol interpretation
-match phases
-countdown logic
-arena geometry
-paddle control logic
-physics
-collisions
-scoring
-lives
-elimination
-winner detection
-render-state decisions
+white
+real browser automation
+Chromium
+Railway CLI
+Railway authentication for black-demo
+the existing public Railway service/domain
+ordinary public internet access
 ```
 
-Keep the QR dependency narrow and ordinary.
+Do not spend time installing, locating, authenticating, or reconfiguring these capabilities.
 
-Do not use it as a bridge for unrelated JavaScript application code.
+Use the provided browser tools rather than searching the filesystem for a browser.
+
+Use the prepared Railway configuration rather than creating or relinking Railway projects.
+
+If a required prepared capability is actually unavailable, report an **environment failure** and stop.
+
+The execution capsule enforces its own filesystem, permission, shell, and agent policies.
+
+If a command is rejected by experiment policy, adapt to the rejection—for example, split a compound shell command into separate simple commands.
+
+Do not attempt to circumvent or weaken the capsule.
 
 ---
 
-## 5. Environment Assumptions
-
-The environment has been prepared and verified before this task begins.
-
-This session runs inside an isolated, disposable experiment capsule. Everything available inside the capsule has been intentionally provisioned:
-
-```text
-white is installed and available on PATH
-the required Black runtime/toolchain dependencies are installed
-real browser automation is already available (browser tools driving Chromium)
-the Railway CLI is installed
-Railway authentication is already configured
-this workspace is already linked to the Railway project/service black-demo
-`railway up` deploys this workspace to that service without prompts
-the public HTTPS domain for the service already exists
-ordinary public internet access is available
-```
-
-The browser tools can open URLs (including localhost), click, type, read rendered state, take screenshots, resize the viewport (desktop and phone sizes) and open multiple tabs. You do not need to find, install or start a browser yourself.
-
-Do not perform account setup, authentication, project linking, or interactive Railway configuration.
-
-If one of these assumptions is false and prevents progress, treat that as an **environment failure**.
-
-Report the exact failure and stop rather than constructing a workaround that changes the experiment.
-
----
-
-## 6. Timing
-
-This run must be timed.
-
-Before the **first invocation** of:
-
-```text
-white --help
-```
-
-record the current time using a simple direct command such as:
-
-```text
-date -u
-```
-
-The timed interval begins immediately before the first `white --help`.
-
-The timed interval ends only when:
-
-1. the completed application has been deployed to Railway;
-2. the public deployment has been verified to respond;
-3. the final response posts the public playable URL.
-
-Record the ending time with the same time basis.
-
-Report:
-
-```text
-start time
-end time
-total elapsed time
-```
-
-Do not pause or manipulate the timer because of implementation mistakes, compiler errors, debugging, or deployment work.
-
-A genuine external environment failure may invalidate the run.
-
----
-
-## 7. Autonomy Rule
+## 4. Autonomy
 
 Work autonomously.
 
-Do not request human approval for ordinary implementation decisions.
+Do not request human guidance for ordinary:
 
-Resolve normal ambiguity using, in order:
+- implementation decisions;
+- file organization;
+- compiler errors;
+- type errors;
+- syntax errors;
+- browser bugs;
+- failed acceptance criteria;
+- deployment steps.
+
+Resolve ordinary ambiguity in this order:
 
 ```text
 1. docs/prd.md
-2. facts discoverable through White
-3. ordinary general technical research where permitted
+2. White
+3. permitted general technical research
 4. the simplest implementation satisfying the PRD
 ```
 
-Do not ask the user:
+Stop and report a blocker only for something genuinely external or contradictory, such as:
 
-```text
-which file structure to use
-which names to choose
-which implementation technique to use
-whether to continue
-whether to run ordinary checks
-whether to fix ordinary compiler errors
-whether to deploy once complete
-```
-
-Human intervention is appropriate only for a genuine blocker such as:
-
-```text
-contradictory mandatory criteria
-missing required external infrastructure
-broken prepared tooling
-an external permission or credential failure
-a genuinely absent required capability
-```
-
-If that happens, explain the blocker precisely and stop.
+- inconsistent mandatory requirements;
+- unavailable prepared infrastructure;
+- unavailable required White capability after exhausting White's discovery surfaces;
+- external credential/service failure.
 
 ---
 
-## 8. Shell Discipline
+## 5. Read the Product Requirements
 
-The session runs unattended. There are no human approval prompts; the capsule enforces its own rules.
-
-Use **one simple command per shell invocation**.
-
-This is enforced by policy: a compound or orchestrating shell command is rejected automatically with a message such as `Experiment policy: compound shell commands are disabled.` If that happens, run the steps as separate simple commands.
-
-Do not use:
-
-```text
-shell pipelines
-||
-&&
-command chaining
-command substitution
-subshell tricks
-eval
-clever shell one-liners
-temporary shell programs
-ad-hoc Python programs
-ad-hoc Bash programs
-generated helper scripts used only to orchestrate the task
-scripts that store environment variables or credentials
-```
-
-Do not use Python or shell scripting as a shortcut for ordinary implementation or orchestration.
-
-Prefer direct commands such as:
-
-```text
-white --help
-white check
-white build
-white run
-git status
-railway up
-```
-
----
-
-## 9. Capsule and Repository Boundary
-
-The session is running inside an isolated disposable experiment capsule. Everything available inside the capsule is intentionally provisioned. Do not attempt to escape or weaken the capsule. Store deliberate project notes and temporary task artifacts under `.local/`.
-
-Ordinary project work belongs in this repository.
-
-Tools and Claude Code itself may use their own internal runtime and temporary locations inside the capsule; that is expected and is not a violation.
-
-### Claude Code memory
-
-Do not rely on Claude Code persistent memory for this task. Keep task knowledge in the repository or in `.local/`.
-
-### Scratch work
-
-If temporary notes or scratch artifacts are needed, put them in:
-
-```text
-.local/
-```
-
-inside this repository.
-
-Keep `.local/` untracked.
-
-Delete disposable `.local/` contents before final completion unless a specific artifact is useful as run evidence.
-
-Never place credentials, secrets, or authentication tokens there.
-
----
-
-## 10. No Sub-Agents
-
-This task is performed by one session.
-
-Sub-agents, background agents and parallel implementers are disabled in this capsule. Do not try to launch another agent or another Claude session.
-
----
-
-## 11. Read the Product Requirements First
-
-Before starting the timer, read:
+Before beginning Black discovery, read:
 
 ```text
 docs/prd.md
 ```
 
-Understand the complete required product.
+Read it completely.
 
-Pay particular attention to:
+Treat it as the authoritative product specification.
 
-```text
-room creation and invite joining
-QR-code joining
-desktop and mobile usability
-responsive layout
-player-relative arena orientation
-server authority
-countdown behavior
-collision rules
-lives and elimination
-disconnect behavior
-multiple balls
-winning
-Railway deployment
-acceptance criteria
-```
-
-Do not begin implementation from only a partial reading.
-
-Once the requirements are understood, begin the timed portion.
+Do not implement from only a partial understanding of the acceptance criteria.
 
 ---
 
-## 12. Begin Black Discovery
+## 6. Begin Black Discovery
 
-Record the start time.
-
-Then run:
+After understanding the PRD, begin with:
 
 ```text
 white --help
 ```
 
-Use White's discovery mechanisms to learn what is available for:
+Use White's discovery surfaces to learn the language and available runtime/platform capabilities.
 
-```text
-project creation/configuration
-Black syntax
-modules
-types
-records and variants
-standard functionality
-server/browser capabilities
-drawing/rendering
-networking
-JSON
-input
-randomness
-audio
-clipboard
-mobile-friendly interaction
-checking
-building
-running
-```
+Discover what you need for:
 
-This list describes application needs, not specific API names.
+- project configuration;
+- Black syntax;
+- modules;
+- functions;
+- records and variants;
+- standard-library functionality;
+- server behavior;
+- browser behavior;
+- networking;
+- rendering;
+- JSON;
+- input;
+- randomness;
+- audio;
+- clipboard/invite sharing;
+- checking;
+- building;
+- running.
 
-Do not invent interfaces.
+Do not guess API names or syntax when White can answer the question.
 
-Discover what White actually provides.
+Use compiler feedback as part of the discovery process.
 
 ---
 
-## 13. Establish a Minimal Running Project
+## 7. Establish a Minimal Running Black Project
 
-Before implementing the complete game, establish the smallest valid project proving the toolchain is understood.
+Before implementing the full game, establish the smallest valid project that proves the discovered project structure works.
 
 Reach a state where:
 
@@ -412,152 +207,140 @@ Reach a state where:
 white check
 ```
 
-succeeds.
+passes.
 
-Then prove that the application can:
+Then verify:
 
 ```text
 white build
+```
+
+and:
+
+```text
 white run
 ```
 
 using the actual command forms exposed by White.
 
-Do not spend time polishing this scaffold.
+Use the provided browser automation to confirm the running application can be opened.
+
+Do not spend time polishing the initial scaffold.
 
 ---
 
-## 14. Implementation Strategy
+## 8. Implementation Strategy
 
-Build incrementally in dependency order.
+Build incrementally.
 
-Do not write the entire application before compiling it.
-
-After each meaningful milestone, run the appropriate White checks.
+After meaningful changes, use White to check the program rather than accumulating a large batch of unchecked code.
 
 Prefer:
 
-```text
-explicit state
-ordinary Black data structures
-ordinary functions
-few modules
-small protocol messages
-straightforward state transitions
-```
+- explicit state;
+- ordinary Black data structures;
+- ordinary functions;
+- few modules;
+- small protocol messages;
+- straightforward state transitions.
 
 Avoid:
 
-```text
-framework-building
-general game engines
-general physics frameworks
-general networking frameworks
-premature abstraction
-unrequested infrastructure
-```
+- framework-building;
+- generalized game engines;
+- generalized physics systems;
+- generalized multiplayer frameworks;
+- unnecessary abstraction;
+- unrequested infrastructure.
+
+The goal is the product described by the PRD, not a reusable game platform.
 
 ---
 
-## 15. Phase A — Rooms and Connectivity
+## 9. Phase A — Rooms and Lobby
 
-Implement enough to prove:
+Implement the multiplayer foundation first.
 
-```text
-a room can be created
-the room has a unique identity
-the creator becomes host
-an invite URL exists
-another browser can join the intended room
-multiple clients see the same room
-different rooms remain isolated
-invalid invites fail safely
-```
+Establish:
 
-The server owns authoritative room membership.
+- room creation;
+- unique room identity;
+- host assignment;
+- invite URL generation;
+- joining through an invite;
+- multiple simultaneous clients;
+- isolation between different rooms;
+- safe handling of invalid room IDs.
 
----
+Then complete the lobby:
 
-## 16. Phase B — Lobby and Join Experience
+- display names;
+- color palette;
+- player roster;
+- host display;
+- dynamic polygon as players join/leave;
+- ball spawn interval configuration;
+- invite display;
+- Copy Invite Link;
+- QR-code joining.
 
-Implement:
+Use real browser automation to verify multiple clients.
 
-```text
-display names
-fixed color palette
-host identity
-player roster
-dynamic polygon
-spawn-interval control
-invite URL display
-Copy Invite Link
-QR code
-```
-
-Use the permitted external QR library if necessary.
-
-Ensure joining works from phone-sized and desktop viewports.
+Do not proceed deeply into physics until room isolation and lobby synchronization work.
 
 ---
 
-## 17. Phase C — Arena Geometry and Player Views
+## 10. Phase B — Arena and Controls
 
-Implement the authoritative regular polygon and per-player edge assignment.
+Implement the authoritative regular polygon and player-edge assignments.
 
-Keep one shared world-coordinate system.
+Use one shared authoritative world coordinate system.
 
-Each active client locally rotates its view so its own edge appears at the bottom.
+Then implement local presentation so every active player sees their own edge at the bottom of their screen without changing authoritative geometry.
 
-Input must map correctly through that local transformation.
+Implement all required control methods:
 
----
+- mouse;
+- A / D;
+- Left / Right Arrow;
+- Invert Controls;
+- touch/tap;
+- touch/drag.
 
-## 18. Phase D — Paddle Input
+Keyboard direction must follow visible screen direction.
 
-Support:
+Touch controls must not scroll the gameplay page while steering.
 
-```text
-mouse
-A / D
-Left Arrow / Right Arrow
-Invert Controls
-touch/tap
-touch/drag
-```
-
-Keyboard direction is screen-relative.
-
-Touch gameplay must not scroll/zoom the page while steering.
-
-One player must not control another player's paddle.
+Verify that one connection cannot authoritatively control another player's paddle.
 
 ---
 
-## 19. Phase E — Core Physics
+## 11. Phase C — Core Game Physics
 
-Implement the complete single-ball game first.
+Implement a complete single-ball game before adding multiple-ball behavior.
 
-Required behavior:
+Required behavior includes:
 
-```text
-ball vs paddle
-ball vs post
-ball crossing goal
-ball vs eliminated/disconnected wall
-five starting lives
-scoring
-replacement ball
-elimination
-solid-wall conversion
-```
+- initial ball spawn;
+- random launch direction;
+- ball vs paddle collision;
+- ball vs goal-post collision;
+- crossing an undefended goal;
+- life loss;
+- replacement ball after scoring;
+- elimination at zero lives;
+- eliminated/disconnected edges becoming solid walls;
+- wall reflection.
 
-Physics stays server-authoritative.
+Keep all authoritative physics and scoring on the server.
+
+Do not move authoritative gameplay decisions into the client for convenience.
 
 ---
 
-## 20. Phase F — Match State and Countdown
+## 12. Phase D — Match Lifecycle
 
-Implement:
+Implement the required room phases:
 
 ```text
 LOBBY
@@ -566,105 +349,67 @@ PLAYING
 GAME_OVER
 ```
 
-and the authoritative:
+Implement:
 
-```text
-3
-2
-1
-GO!
-```
+- host-only start;
+- minimum-player requirement;
+- frozen active roster;
+- frozen match geometry;
+- server-driven 3-2-1 countdown;
+- countdown visual/audio behavior;
+- countdown cancellation when a seated player disconnects;
+- late-join behavior;
+- winner detection;
+- simulation stop;
+- victory display;
+- Return to Lobby;
+- lobby reconstruction.
 
-countdown.
-
-Verify the PRD's:
-
-```text
-host-only start
-minimum player count
-frozen roster
-frozen geometry
-configuration freeze
-late-join rules
-seated-disconnect cancellation
-audio behavior
-```
+Verify these transitions with multiple browser clients.
 
 ---
 
-## 21. Phase G — Multiple Balls and Completion
+## 13. Phase E — Multiple Balls
 
 Add:
 
-```text
-periodic spawning
-random launch directions
-ball-to-ball collision
-bounded/stable velocity
-multiple simultaneous balls
-winner determination
-simulation stop
-victory presentation
-return to lobby
-lobby reconstruction
-```
+- periodic ball spawning;
+- replacement spawning after scores;
+- multiple simultaneous balls;
+- equal-mass ball-to-ball collision;
+- overlap correction if necessary;
+- stable/bounded velocity.
+
+Exercise scoring, elimination, disconnects, and victory with multiple balls active.
 
 ---
 
-## 22. Phase H — Responsive and Mobile Completion
+## 14. Phase F — Responsive and Mobile Completion
 
-Mobile usability is required.
+Mobile usability is required, not optional polish.
 
-Verify portrait and landscape phone-sized viewports.
+Using the provided browser tools, verify both portrait and landscape phone-sized viewports.
 
-Required:
+Confirm that:
 
-```text
-controls and arena do not overlap
-text remains usable
-name entry works without physical keyboard
-color selection works by touch
-host controls work by touch
-paddle steering works by touch
-arena remains usable
-```
+- controls and arena do not overlap;
+- text remains usable;
+- name entry works without a physical keyboard;
+- color selection works by touch;
+- host controls work by touch;
+- Start works for a phone host;
+- touch steering works;
+- the gameplay arena remains usable.
 
-Implement the smallest responsive layout satisfying the PRD.
-
----
-
-## 23. Phase I — Robustness
-
-Verify relevant edge cases including:
-
-```text
-lobby disconnect
-countdown disconnect
-playing disconnect
-host departure
-invalid invite
-multiple rooms
-late joining
-malformed messages
-unknown connections
-multiple-ball edge cases
-resize
-orientation changes
-audio not unlocked
-clipboard unavailable
-```
-
-Malformed client input must not crash the authoritative server or corrupt another room.
+Implement the smallest responsive layout that satisfies the PRD.
 
 ---
 
-## 24. Validation Discipline
+## 15. Validation
 
 Use White continuously.
 
-Do not accumulate large unchecked edits.
-
-The available core validation commands are:
+The relevant White validation commands include:
 
 ```text
 white check
@@ -672,46 +417,33 @@ white build
 white run
 ```
 
-There is currently **no `white test` command**.
+There is currently no:
 
-Do not waste time searching for or attempting to invent one.
+```text
+white test
+```
+
+command.
+
+Do not search for or attempt to invent one.
 
 Use:
 
 - `white check`;
 - `white build`;
 - `white run`;
-- real browser interaction through the provided browser tools;
-- acceptance-criterion verification;
-- any ordinary repository tests that actually exist and are relevant.
+- real browser automation;
+- multiple browser clients;
+- desktop and mobile viewports;
+- the acceptance criteria in `docs/prd.md`.
 
-Do not weaken product requirements merely to make validation pass.
+Do not hand-edit generated backend output instead of fixing Black source.
 
-Do not hand-edit generated backend output as a substitute for fixing Black source.
-
----
-
-## 25. Black-Only Application Logic
-
-Application/game behavior must be implemented in Black.
-
-Do not implement Polygon Pong logic in:
-
-```text
-handwritten JavaScript
-Python
-shell
-deployment configuration
-generated files
-```
-
-The explicit exception is the permitted generic external JavaScript QR library described earlier.
-
-Ordinary build/deployment configuration is allowed.
+Do not weaken requirements to make validation easier.
 
 ---
 
-## 26. Acceptance Pass
+## 16. Acceptance Pass
 
 Before deployment, walk through **every acceptance criterion** in:
 
@@ -719,185 +451,134 @@ Before deployment, walk through **every acceptance criterion** in:
 docs/prd.md
 ```
 
-For each criterion, determine whether it is:
+Do not rely on memory.
+
+For every criterion, classify it as:
 
 ```text
 verified
-not verified
 failed
+not verified
 ```
 
-Fix failed required criteria before deployment.
+Fix failed required criteria.
 
-Use real browser interaction where practical, especially for:
+Pay particular attention to real-browser verification of:
 
-```text
-multiple clients
-room isolation
-QR joining
-responsive layout
-touch behavior
-countdown
-player-relative views
-winner/return flow
-```
+- room creation;
+- room isolation;
+- QR/invite joining;
+- multiple clients;
+- countdown;
+- player-relative views;
+- input;
+- mobile behavior;
+- scoring/elimination;
+- multiple balls;
+- winner and Return to Lobby.
+
+The goal is to deploy a product you have actually exercised, not merely one that compiles.
 
 ---
 
-## 27. Scope Discipline
+## 17. Scope Discipline
 
-Do not spend time on unrequested features.
+Do not add unrequested features such as:
 
-Do not add:
-
-```text
-accounts
-matchmaking
-persistent storage
-leaderboards
-chat
-AI players
-power-ups
-extra game modes
-complex visual effects
-general-purpose frameworks
-analytics
-unrequested infrastructure
-```
+- accounts;
+- matchmaking;
+- persistent storage;
+- leaderboards;
+- chat;
+- AI players;
+- power-ups;
+- extra game modes;
+- elaborate visual effects;
+- analytics;
+- generalized frameworks.
 
 Once a requirement works reliably, move to the next unmet requirement.
 
+Do not perform large late-stage refactors solely for elegance.
+
 ---
 
-## 28. Railway Deployment
+## 18. Railway Deployment
 
-Deployment is a required part of this timed run.
+Deployment is part of the task.
 
-The Railway environment is prepared for non-interactive deployment under:
+The environment is already configured for the Railway project/service:
 
 ```text
 black-demo
 ```
 
-This workspace is already linked to that project and service, and the service already has a public HTTPS domain.
-
-Use the simplest direct Railway workflow available.
-
-Do not:
-
-```text
-log in interactively
-create/relink accounts
-change unrelated Railway settings
-write credentials into files
-construct helper scripts around Railway
-```
-
-General Railway documentation may be consulted on the web if necessary.
-
-If Railway unexpectedly requires human authentication or approval despite the environment contract, report an environment failure rather than improvising around it.
+Deploy the completed application using the prepared Railway tooling.
 
 The deployed service must run the Black application produced during this task.
 
----
+Do not replace it with another implementation for deployment.
 
-## 29. Deployment Verification
+Deployment is not complete merely because Railway accepts the deploy.
 
-Deployment is not complete merely because Railway accepts a command.
+Obtain the public HTTPS URL and verify the deployed application.
 
-Obtain the public HTTPS URL.
+At minimum confirm publicly that:
 
-Verify:
+- the page loads;
+- a room can be created;
+- the normal invite experience appears.
 
-```text
-the public page loads
-a room can be created
-the invite experience appears
-```
-
-If practical, verify another browser can join the deployed room.
+Where practical, open the public application in another browser context and verify joining.
 
 ---
 
-## 30. End the Timer
+## 19. Completion
 
-After:
+The task is complete when:
 
-```text
-implementation complete
-acceptance pass complete
-Railway deployment complete
-public URL obtained
-public URL verified
-```
+1. the required application is implemented;
+2. `white check` passes;
+3. `white build` passes;
+4. the application runs successfully;
+5. the PRD acceptance pass has been completed;
+6. the application is deployed to Railway;
+7. the public deployment has been verified;
+8. a playable public HTTPS URL is available.
 
-record the ending time.
+The experiment harness records the authoritative elapsed time from the first `white --help` invocation through completion.
 
-Compute total elapsed time.
-
-The timer ends immediately before the final response containing the playable URL.
+Do not pause, reset, or otherwise manipulate the experiment run.
 
 ---
 
-## 31. Final Response
+## 20. Final Response
 
 Report concisely:
 
 ```text
 SUCCESS or PARTIAL
+
 public Railway URL
-start timestamp
-end timestamp
-elapsed time
+
 white check result
 white build result
-white run / runtime verification result
-deployment verification result
+local runtime/browser verification result
+public deployment verification result
+
 known unmet PRD criteria, if any
 ```
 
-If all criteria are met, say so explicitly.
+If all required criteria are satisfied, say so explicitly.
 
-Do not claim unsupported success.
-
----
-
-## 32. Stop Conditions
-
-Stop and request human intervention only for a genuine blocker such as:
-
-```text
-docs/prd.md contains contradictory mandatory requirements
-white is unavailable despite the environment contract
-prepared Railway access is unavailable
-Railway unexpectedly requires human authentication
-a required capability is genuinely absent after exhausting White
-an external service failure prevents completion
-```
-
-Do not stop for:
-
-```text
-compiler errors
-type errors
-syntax errors
-ordinary browser bugs
-acceptance failures
-design choices
-implementation uncertainty
-bugs in your own code
-```
-
-Those are part of the task.
+If something remains incomplete, report it accurately.
 
 ---
 
-## 33. Governing Principle
-
-The objective is not to demonstrate clever agent orchestration.
+## 21. Governing Principle
 
 The objective is:
 
-> Given only a product specification and an entry point into an unfamiliar programming language's own toolchain, independently learn enough of that language to build, verify, deploy, and publish a complete multiplayer application.
+> Given a product specification and an entry point into an unfamiliar programming language's own toolchain, independently learn enough of that language to build, verify, deploy, and publish a complete multiplayer application.
 
 Stay focused on that objective.
