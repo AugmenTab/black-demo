@@ -140,20 +140,23 @@ Do not use it as a bridge for unrelated JavaScript application code.
 
 ## 5. Environment Assumptions
 
-The environment has been prepared before this task begins.
+The environment has been prepared and verified before this task begins.
 
-Assume:
+This session runs inside an isolated, disposable experiment capsule. Everything available inside the capsule has been intentionally provisioned:
 
 ```text
 white is installed and available on PATH
 the required Black runtime/toolchain dependencies are installed
-a modern browser/runtime required by White is available
+real browser automation is already available (browser tools driving Chromium)
 the Railway CLI is installed
 Railway authentication is already configured
-this repository is already associated with the intended Railway project/service
-the Railway target is named black-demo
-Railway deployment can complete non-interactively
+this workspace is already linked to the Railway project/service black-demo
+`railway up` deploys this workspace to that service without prompts
+the public HTTPS domain for the service already exists
+ordinary public internet access is available
 ```
+
+The browser tools can open URLs (including localhost), click, type, read rendered state, take screenshots, resize the viewport (desktop and phone sizes) and open multiple tabs. You do not need to find, install or start a browser yourself.
 
 Do not perform account setup, authentication, project linking, or interactive Railway configuration.
 
@@ -244,11 +247,13 @@ If that happens, explain the blocker precisely and stop.
 
 ---
 
-## 8. Shell and Approval-Safety Rules
+## 8. Shell Discipline
 
-The implementation must be able to run unattended in auto mode.
+The session runs unattended. There are no human approval prompts; the capsule enforces its own rules.
 
 Use **one simple command per shell invocation**.
+
+This is enforced by policy: a compound or orchestrating shell command is rejected automatically with a message such as `Experiment policy: compound shell commands are disabled.` If that happens, run the steps as separate simple commands.
 
 Do not use:
 
@@ -283,33 +288,21 @@ railway up
 
 ---
 
-## 9. Repository and Claude Code State Boundary
+## 9. Capsule and Repository Boundary
 
-All deliberate task work must stay inside this repository.
+The session is running inside an isolated disposable experiment capsule. Everything available inside the capsule is intentionally provisioned. Do not attempt to escape or weaken the capsule. Store deliberate project notes and temporary task artifacts under `.local/`.
 
-Do not deliberately read from or write to arbitrary filesystem locations outside the repository.
+Ordinary project work belongs in this repository.
 
-Do not use:
+Tools and Claude Code itself may use their own internal runtime and temporary locations inside the capsule; that is expected and is not a violation.
 
-```text
-another checkout
-another project
-home-directory scratch files
-/tmp scratch files
-neighboring repositories
-Claude Code scratchpad directories outside this repository
-Claude Code memory files
-```
+### Claude Code memory
 
-### Claude Code memory is forbidden
-
-Do **not** create, update, append to, or rely on Claude Code persistent memory for this task.
-
-Do not save task knowledge into user-level, project-external, or global memory files.
+Do not rely on Claude Code persistent memory for this task. Keep task knowledge in the repository or in `.local/`.
 
 ### Scratch work
 
-If temporary notes or scratch artifacts are needed, use only:
+If temporary notes or scratch artifacts are needed, put them in:
 
 ```text
 .local/
@@ -319,44 +312,17 @@ inside this repository.
 
 Keep `.local/` untracked.
 
-Use it instead of any Claude Code external scratchpad.
-
 Delete disposable `.local/` contents before final completion unless a specific artifact is useful as run evidence.
 
 Never place credentials, secrets, or authentication tokens there.
 
 ---
 
-## 10. Sub-Agent Rules
+## 10. No Sub-Agents
 
-The primary Implementer owns the implementation.
+This task is performed by one session.
 
-Do not create multiple agents that concurrently modify the codebase.
-
-If sub-agents are used at all, prefer read-only tasks such as:
-
-```text
-reviewing a requirement
-checking acceptance coverage
-reviewing an implementation failure
-researching a general non-Black technical question
-```
-
-The primary Implementer remains the sole code writer.
-
-Every sub-agent inherits **all** restrictions in this plan, including:
-
-```text
-repository boundary
-no Claude Code memory writes
-.local/ instead of external scratchpads
-no outside Black sources
-no reference implementation searches
-no approval-triggering shell tricks
-no code-writing swarm
-```
-
-A sub-agent must not be used to bypass a restriction placed on the primary Implementer.
+Sub-agents, background agents and parallel implementers are disabled in this capsule. Do not try to launch another agent or another Claude session.
 
 ---
 
@@ -715,7 +681,7 @@ Use:
 - `white check`;
 - `white build`;
 - `white run`;
-- real browser interaction;
+- real browser interaction through the provided browser tools;
 - acceptance-criterion verification;
 - any ordinary repository tests that actually exist and are relevant.
 
@@ -807,11 +773,13 @@ Once a requirement works reliably, move to the next unmet requirement.
 
 Deployment is a required part of this timed run.
 
-The Railway environment is assumed prepared for non-interactive deployment under:
+The Railway environment is prepared for non-interactive deployment under:
 
 ```text
 black-demo
 ```
+
+This workspace is already linked to that project and service, and the service already has a public HTTPS domain.
 
 Use the simplest direct Railway workflow available.
 

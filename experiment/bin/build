@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Builds the capsule image from the pinned White commit and pinned tool
+# versions. The White source never enters the final image: only a `git
+# archive` of the commit is handed to the builder stage, which emits a
+# sanitized runtime (see Dockerfile).
+. "$(dirname "$0")/lib.sh"
+
+command -v docker >/dev/null || die "docker not found"
+git -C "$WHITE_REPO" cat-file -e "$WHITE_COMMIT^{commit}" || die "White commit $WHITE_COMMIT not found in $WHITE_REPO"
+
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+
+log "archiving White $WHITE_COMMIT (src, std/Platform, package files only)"
+git -C "$WHITE_REPO" archive --format=tar -o "$BUILD_DIR/white-src.tar" "$WHITE_COMMIT" \
+  src std/Platform package.json package-lock.json tsconfig.json
+
+cp -R "$EXP_DIR/capsule" "$BUILD_DIR/capsule"
+
+log "building $IMAGE_TAG"
+docker build \
+  -f "$EXP_DIR/Dockerfile" \
+  --build-arg NODE_BASE_IMAGE="$NODE_BASE_IMAGE" \
+  --build-arg CLAUDE_CODE_VERSION="$CLAUDE_CODE_VERSION" \
+  --build-arg RAILWAY_CLI_VERSION="$RAILWAY_CLI_VERSION" \
+  --build-arg PLAYWRIGHT_MCP_VERSION="$PLAYWRIGHT_MCP_VERSION" \
+  --build-arg ESBUILD_VERSION="$ESBUILD_VERSION" \
+  --label experiment=black-demo \
+  --label white.commit="$WHITE_COMMIT" \
+  --label claude-code.version="$CLAUDE_CODE_VERSION" \
+  --label railway-cli.version="$RAILWAY_CLI_VERSION" \
+  --label playwright-mcp.version="$PLAYWRIGHT_MCP_VERSION" \
+  -t "$IMAGE_TAG" \
+  "$BUILD_DIR"
+
+rm -f "$BUILD_DIR/white-src.tar"
+log "built $(image_id)"

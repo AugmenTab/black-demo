@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# Starts one blind trial:
+#   1. refuses unless the latest preflight passed for this exact image + config,
+#   2. builds a fresh workspace from the fixture manifest (committed content
+#      of this repository's HEAD) with a new single-commit Git history,
+#   3. records metadata, then launches one Claude Code session in a new capsule,
+#   4. collects transcripts, capsule logs and the final workspace, redacts
+#      secrets, and writes timing.json / result.json.
+#
+# usage: experiment/bin/run [--prepare-only]
+#   --prepare-only  build the workspace and metadata, then stop before launch
+. "$(dirname "$0")/lib.sh"
+
+PREPARE_ONLY=0
+[ "${1:-}" = "--prepare-only" ] && PREPARE_ONLY=1
+
+# --- hard gate -----------------------------------------------------------------
+STAMP="$PREFLIGHT_DIR/PASSED.json"
+[ -f "$STAMP" ] || die "preflight has not passed; run experiment/bin/preflight"
+IMG=$(image_id)
+CONFIG_SHA=$(shasum -a 256 "$EXP_DIR/config.env" | cut -d' ' -f1)
+grep -q "\"image_id\": \"$IMG\"" "$STAMP" || die "preflight passed for a different image; rerun experiment/bin/preflight"
+grep -q "\"config_sha256\": \"$CONFIG_SHA\"" "$STAMP" || die "config.env changed since preflight; rerun experiment/bin/preflight"
+stamp_age=$(( $(date +%s) - $(stat -f %m "$STAMP") ))
+[ "$stamp_age" -lt 43200 ] || die "preflight is older than 12h; rerun experiment/bin/preflight"
+require_secrets
+
+# --- fresh workspace from the manifest ------------------------------------------
+RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$(openssl rand -hex 3)"
+R="$RUNS_DIR/$RUN_ID"
+W="$R/workspace"
+mkdir -p "$W/.local" "$R/events" "$R/transcript"
+SRC_COMMIT=$(git -C "$REPO_DIR" rev-parse HEAD)
+MANIFEST=$(grep -vE '^\s*(#|$)' "$EXP_DIR/fixture-manifest.txt")
+
+for path in $MANIFEST; do
+  git -C "$REPO_DIR" cat-file -e "HEAD:$path" || die "manifest file $path is not committed at HEAD"
+  if ! git -C "$REPO_DIR" diff --quiet HEAD -- "$path"; then
+    log "note: $path has uncommitted changes; the fixture uses the committed version"
+  fi
+  mkdir -p "$W/$(dirname "$path")"
+  git -C "$REPO_DIR" show "HEAD:$path" > "$W/$path"
+done
+
+export GIT_AUTHOR_NAME="Experiment Harness" GIT_AUTHOR_EMAIL="harness@experiment.invalid"
+export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME" GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+export GIT_AUTHOR_DATE="2026-01-01T00:00:00Z" GIT_COMMITTER_DATE="2026-01-01T00:00:00Z"
+git -C "$W" init -q -b main
+for path in $MANIFEST; do git -C "$W" add -- "$path"; done
+git -C "$W" -c commit.gpgsign=false commit -q -m "Baseline fixture"
+unset GIT_AUTHOR_DATE GIT_COMMITTER_DATE
+BASELINE=$(git -C "$W" rev-parse HEAD)
+
+# The workspace must contain exactly the manifest plus .git and empty .local.
+extra=$(cd "$W" && find . -path ./.git -prune -o -type f -print | sed 's|^\./||' | sort | grep -vxF -f <(printf '%s\n' $MANIFEST) || true)
+[ -z "$extra" ] || die "fixture contains unexpected files: $extra"
+
+sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
+CHROMIUM_V=$(docker run --rm --entrypoint chromium "$IMAGE_TAG" --version 2>/dev/null | tr -d '\n' || true)
+WHITE_V=$(docker run --rm --entrypoint white "$IMAGE_TAG" capabilities --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s).result;console.log(`${r.compiler_version} (${r.profile}, ${r.implementation_stage})`)})')
+cat > "$R/metadata.json" <<EOF
+{
+  "run_id": "$RUN_ID",
+  "created_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "source_repository": "$REPO_DIR",
+  "source_commit": "$SRC_COMMIT",
+  "workspace_baseline_commit": "$BASELINE",
+  "fixture_manifest": [$(printf '"%s",' $MANIFEST | sed 's/,$//')],
+  "fixture_sha256": {
+    "docs/prd.md": "$(sha "$W/docs/prd.md")",
+    "docs/plan.md": "$(sha "$W/docs/plan.md")"
+  },
+  "prompt": $(node -e 'process.stdout.write(JSON.stringify(require("fs").readFileSync(process.argv[1],"utf8").trim()))' "$EXP_DIR/prompt.txt"),
+  "container_image_id": "$IMG",
+  "container_image_tag": "$IMAGE_TAG",
+  "claude_code_version": "$CLAUDE_CODE_VERSION",
+  "model": "$CLAUDE_MODEL",
+  "effort": "$CLAUDE_EFFORT",
+  "disallowed_tools": "$DISALLOWED_TOOLS",
+  "white_version": "$WHITE_V",
+  "white_commit": "$WHITE_COMMIT",
+  "railway_cli_version": "$RAILWAY_CLI_VERSION",
+  "railway_project_id": "$RAILWAY_PROJECT_ID",
+  "railway_service": "$RAILWAY_SERVICE",
+  "playwright_mcp_version": "$PLAYWRIGHT_MCP_VERSION",
+  "browser_version": "$CHROMIUM_V",
+  "preflight_stamp": $(cat "$STAMP")
+}
+EOF
+cp "$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).report)' "$STAMP")" "$R/preflight-report.txt"
+log "run $RUN_ID: workspace $W (baseline $BASELINE)"
+if [ "$PREPARE_ONLY" = 1 ]; then
+  log "prepared only; not launching"
+  exit 0
+fi
+
+# --- launch ------------------------------------------------------------------------
+ensure_network
+NAME="black-demo-run-$RUN_ID"
+echo "$NAME" > "$LOCAL_DIR/current-run"
+load_flags "$W"
+log "launching capsule $NAME ($CLAUDE_MODEL, effort $CLAUDE_EFFORT)"
+docker run -d --name "$NAME" "${FLAGS[@]}" "$IMAGE_TAG" agent "$(cat "$EXP_DIR/prompt.txt")" > /dev/null
+
+# Live, read-only view of the interactive session. Keystrokes cannot reach
+# the agent; Ctrl-b d detaches (re-attach with experiment/bin/watch).
+if [ -t 1 ]; then
+  "$EXP_DIR/bin/watch" || true
+fi
+wait_for_exit "$NAME" $((MAX_RUN_SECONDS + 300)) || { log "capsule exceeded its limit; stopping"; docker stop -t 10 "$NAME" >/dev/null; }
+EXIT_CODE=$(docker inspect -f '{{.State.ExitCode}}' "$NAME")
+EXIT_UTC=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+log "capsule exited with $EXIT_CODE"
+
+# --- collect ------------------------------------------------------------------------
+docker logs "$NAME" > "$R/events/capsule-stderr.log" 2>&1 || true
+collect_capsule "$NAME" "$R/transcript"
+mv "$R/transcript/capsule-logs" "$R/events/capsule-logs" 2>/dev/null || true
+rm -f "$LOCAL_DIR/current-run"
+redact_tree "$R"
+
+node "$EXP_DIR/lib/summarize-run.mjs" "$R" "$EXIT_UTC" "$EXIT_CODE" "$RAILWAY_PUBLIC_URL" > /dev/null
+URL=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).final_url ?? "")' "$R/result.json")
+if [ -n "$URL" ]; then
+  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$URL" || true)
+  node -e 'const f=process.argv[1];const r=JSON.parse(require("fs").readFileSync(f,"utf8"));r.final_url_http_status=Number(process.argv[2])||null;require("fs").writeFileSync(f,JSON.stringify(r,null,2)+"\n")' "$R/result.json" "$code"
+fi
+log "artifacts: $R"
+cat "$R/result.json"

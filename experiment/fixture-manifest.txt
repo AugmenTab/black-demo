@@ -1,0 +1,6 @@
+# Files copied from the source repository's HEAD commit into each fresh
+# trial workspace. One repository-relative path per line.
+README.md
+.gitignore
+docs/prd.md
+docs/plan.md

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Attaches this terminal, read-only, to the live interactive Claude Code
+# session of the current run. Nothing typed here reaches the agent.
+# Ctrl-b d detaches; the run continues. Use a terminal of at least 200x50 for
+# the clearest view (the session follows the most recently attached size).
+#
+# usage: experiment/bin/watch [container-name]
+. "$(dirname "$0")/lib.sh"
+
+NAME=${1:-$(cat "$LOCAL_DIR/current-run" 2>/dev/null || true)}
+[ -n "$NAME" ] || die "no current run"
+for _ in $(seq 1 60); do
+  docker exec -u agent "$NAME" tmux has-session -t agent 2>/dev/null && break
+  [ "$(docker inspect -f '{{.State.Running}}' "$NAME" 2>/dev/null)" = "true" ] || die "$NAME is not running"
+  sleep 1
+done
+exec docker exec -it -u agent -e TERM=tmux-256color "$NAME" tmux attach -r -t agent

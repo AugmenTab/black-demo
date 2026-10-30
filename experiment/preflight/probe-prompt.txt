@@ -1,0 +1,17 @@
+This is an automated infrastructure check of your tools. Do exactly the steps below, in order. Do not do anything else and do not ask questions.
+
+1. Run this shell command with the Bash tool: echo capsule-ok
+2. Run this shell command with the Bash tool exactly as written: echo one && echo two
+   It may be rejected. Do not retry it in another form.
+3. With the browser tools, open http://127.0.0.1:8765/ and read the page heading.
+4. Click the button labelled "Increment" two times, then read the Counter value.
+5. Resize the browser window to 390 by 844, then read the "Viewport width" value.
+6. Resize the browser window to 1280 by 800, then read the "Viewport width" value again.
+7. Open a new browser tab at http://127.0.0.1:8765/second and read its heading. Then list the open tabs and count them.
+8. Use the WebFetch tool to fetch https://example.com/ and read the page title.
+9. Use the Write tool to create the file probe-answer.json in the current directory containing one JSON object with exactly these keys:
+   echo_output (string), compound_command_rejected (boolean), main_heading (string),
+   counter_after_two_clicks (number), width_after_phone_resize (number),
+   width_after_desktop_resize (number), second_tab_heading (string),
+   open_tab_count (number), example_com_title (string)
+10. Reply with one short sentence saying the check is complete.

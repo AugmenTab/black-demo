@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Destroys all disposable experiment state so the next run starts clean:
+# capsule containers (and with them all container-local Claude state, browser
+# profiles, temporary homes and caches), the capsule network, preflight
+# scratch workspaces and the preflight PASS stamp, and build scratch.
+#
+# Preserved: .local/runs/<run-id>/ artifacts, .env (secrets) and the White
+# smoke fixture. Pass --runs to also delete run artifacts.
+#
+# Each run already gets a brand-new workspace and container; reset guarantees
+# nothing from an interrupted or earlier attempt lingers.
+#
+# usage: experiment/bin/reset [--runs]
+. "$(dirname "$0")/lib.sh"
+
+containers=$(docker ps -aq --filter label=experiment=black-demo)
+if [ -n "$containers" ]; then
+  log "removing capsule containers: $(echo "$containers" | tr '\n' ' ')"
+  docker rm -f $containers >/dev/null
+fi
+docker network rm "$CAPSULE_NETWORK" >/dev/null 2>&1 && log "removed network $CAPSULE_NETWORK" || true
+
+rm -rf "$PREFLIGHT_DIR/runs" "$PREFLIGHT_DIR/PASSED.json" "$BUILD_DIR"
+log "removed preflight scratch, PASS stamp and build scratch"
+
+if [ "${1:-}" = "--runs" ]; then
+  rm -rf "$RUNS_DIR"
+  log "removed run artifacts"
+fi
+
+# Any other loose .local notes from earlier attempts.
+find "$LOCAL_DIR" -mindepth 1 -maxdepth 1 \
+  ! -name preflight ! -name runs \
+  -exec rm -rf {} + 2>/dev/null || true
+log "reset complete; run experiment/bin/preflight before the next run"

@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# Hard gate for the experiment. Verifies the host, the capsule (deterministic
+# self-check), Claude Code end to end (throwaway probe session: model, effort,
+# tools, browser, policy hooks, web access) and Railway (smoke deployment to
+# the black-demo service). Writes a PASS stamp only when every check passes;
+# experiment/bin/run refuses to start without a stamp matching the current
+# image and configuration.
+#
+# usage: experiment/bin/preflight [--skip-railway]   (skipping never stamps PASS)
+. "$(dirname "$0")/lib.sh"
+
+SKIP_RAILWAY=0
+[ "${1:-}" = "--skip-railway" ] && SKIP_RAILWAY=1
+
+TS=$(date -u +%Y%m%dT%H%M%SZ)
+P="$PREFLIGHT_DIR/runs/$TS"
+mkdir -p "$P"
+CHECKS="$P/checks.jsonl"
+STAMP="$PREFLIGHT_DIR/PASSED.json"
+rm -f "$STAMP"
+add() { node "$EXP_DIR/lib/report.mjs" add "$CHECKS" "$1" "$2" "$3" "${4:-}"; }
+
+log "preflight $TS -> $P"
+
+# --- host ----------------------------------------------------------------------
+if docker info >/dev/null 2>&1; then add host "docker runtime available" 1 "$(docker version --format '{{.Server.Version}}')"; else add host "docker runtime available" 0; fi
+IMG=$(image_id)
+add host "capsule image built" "$([ -n "$IMG" ] && echo 1 || echo 0)" "${IMG:-run experiment/bin/build}"
+SECRETS_OK=0
+if load_secrets; then SECRETS_OK=1; fi
+add host "secrets present in .env" "$SECRETS_OK" "$SECRET_NAMES"
+add host "secrets file is git-ignored" "$(git -C "$REPO_DIR" check-ignore -q "$SECRETS_FILE" && echo 1 || echo 0)"
+api_key_set=$( [ -f "$SECRETS_FILE" ] && grep -qE '^ANTHROPIC_API_KEY=.+' "$SECRETS_FILE" && echo 1 || echo 0)
+token_kind() {
+  case "${CLAUDE_CODE_OAUTH_TOKEN:-}" in
+    sk-ant-oat*) echo oauth ;;
+    "") echo missing ;;
+    *) echo not-oauth ;;
+  esac
+}
+TOKEN_KIND=$(token_kind)
+OAUTH_OK=0
+if [ "$TOKEN_KIND" = oauth ] && [ "$api_key_set" = 0 ]; then OAUTH_OK=1; fi
+add host "Claude auth is a subscription OAuth token (no API key)" "$OAUTH_OK" "token type: $TOKEN_KIND"
+add host "only scoped secrets injected" 1 "CLAUDE_CODE_OAUTH_TOKEN, RAILWAY_TOKEN (passed by name)"
+add host "White smoke fixture present (.local/preflight/white-smoke)" "$([ -f "$PREFLIGHT_DIR/white-smoke/white.toml" ] && echo 1 || echo 0)"
+if node --test "$EXP_DIR/capsule/hooks/shell-policy.test.mjs" > "$P/policy-tests.txt" 2>&1; then
+  add host "shell policy unit tests" 1 "$(grep -E '^# (pass|fail)' "$P/policy-tests.txt" | tr '\n' ' ')"
+else
+  add host "shell policy unit tests" 0 "see $P/policy-tests.txt"
+fi
+
+if [ -z "$IMG" ] || [ "$SECRETS_OK" != 1 ]; then
+  node "$EXP_DIR/lib/report.mjs" summary "$CHECKS" | tee "$P/report.txt"
+  exit 1
+fi
+ensure_network
+
+# --- capsule self-check ------------------------------------------------------
+log "capsule self-check"
+mkdir -p "$P/selfcheck-workspace"
+printf '{ "claudeVersion": "%s", "railwayVersion": "%s", "blockedHosts": "%s", "railway": true, "railwayProject": "%s", "railwayService": "%s" }\n' \
+  "$CLAUDE_CODE_VERSION" "$RAILWAY_CLI_VERSION" "$BLOCKED_HOSTS" "$RAILWAY_SERVICE" "$RAILWAY_SERVICE" > "$P/selfcheck-workspace/.expect.json"
+load_flags "$P/selfcheck-workspace"
+docker run --rm "${FLAGS[@]}" \
+  --mount "type=bind,source=$EXP_DIR/preflight,target=/preflight,readonly" \
+  --mount "type=bind,source=$PREFLIGHT_DIR/white-smoke,target=/preflight-smoke,readonly" \
+  "$IMAGE_TAG" node /preflight/selfcheck.mjs > "$P/selfcheck.json" 2> "$P/selfcheck.stderr" || true
+node "$EXP_DIR/lib/report.mjs" merge "$CHECKS" capsule "$P/selfcheck.json"
+
+# --- Claude: effective configuration (headless, identical flags) ----------------
+log "Claude config check (headless call with the run's flags)"
+mkdir -p "$P/config-workspace"
+load_flags "$P/config-workspace"
+docker run --rm "${FLAGS[@]}" "$IMAGE_TAG" \
+  /opt/experiment/claude-session.sh print "Reply with exactly the word: ok" \
+  < /dev/null 2> "$P/config-check.stderr" \
+  | node "$EXP_DIR/lib/stamp.mjs" "$P/config-check-events.jsonl" --quiet || true
+
+# --- Claude: unattended interactive probe (same path as a real run) ------------
+log "Claude interactive probe (throwaway state, no task files, nobody attached)"
+PD="$P/probe"
+PW="$PD/workspace"
+mkdir -p "$PW/.claude"
+# Adversarial project settings, as a real run's agent could write them. The
+# managed policy must still apply.
+printf '%s\n' '{ "disableAllHooks": true, "hooks": {}, "permissions": { "allow": ["Bash(*)", "Agent"] } }' > "$PW/.claude/settings.json"
+load_flags "$PW"
+PROBE_NAME="black-demo-probe-$TS"
+docker run -d --name "$PROBE_NAME" "${FLAGS[@]}" -e EXPERIMENT_STOP_GRACE=3 \
+  --mount "type=bind,source=$EXP_DIR/preflight,target=/preflight,readonly" \
+  "$IMAGE_TAG" /preflight/probe.sh > /dev/null
+if ! wait_for_exit "$PROBE_NAME" 900; then
+  log "probe did not finish within 15 minutes; capturing its screen"
+  docker exec -u agent "$PROBE_NAME" tmux capture-pane -p -t agent > "$PD/probe-screen.txt" 2>&1 || true
+  docker stop -t 5 "$PROBE_NAME" > /dev/null || true
+fi
+docker logs "$PROBE_NAME" > "$PD/container.log" 2>&1 || true
+collect_capsule "$PROBE_NAME" "$PD"
+cp "$PD/capsule-logs/final-screen.txt" "$PD/probe-screen-final.txt" 2>/dev/null || true
+redact_tree "$P"
+node "$EXP_DIR/lib/evaluate-probe.mjs" "$P/config-check-events.jsonl" "$PD" "$CLAUDE_MODEL" "$CLAUDE_EFFORT" "$DISALLOWED_TOOLS" > "$P/probe.json" 2> "$P/probe-eval.stderr" || true
+node "$EXP_DIR/lib/report.mjs" merge "$CHECKS" "claude" "$P/probe.json"
+
+# --- Railway smoke deployment ---------------------------------------------------
+if [ "$SKIP_RAILWAY" = 1 ]; then
+  add railway "smoke deployment" 0 "skipped (--skip-railway); preflight cannot pass"
+else
+  log "Railway smoke deployment to $RAILWAY_SERVICE"
+  RW="$P/railway-smoke"
+  cp -R "$EXP_DIR/preflight/railway-smoke" "$RW"
+  NONCE="smoke-$TS-$RANDOM"
+  echo "$NONCE" > "$RW/nonce.txt"
+  load_flags "$RW"
+  if docker run --rm "${FLAGS[@]}" "$IMAGE_TAG" railway up --detach --message "capsule preflight $NONCE" \
+      < /dev/null > "$P/railway-up.log" 2>&1; then
+    add railway "railway up without login/project/confirmation prompts" 1 "$(tail -n 1 "$P/railway-up.log")"
+    deadline=$(( $(date +%s) + 600 ))
+    live=0
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+      if curl -fsS --max-time 10 "$RAILWAY_PUBLIC_URL/" 2>/dev/null | grep -q "$NONCE"; then live=1; break; fi
+      sleep 10
+    done
+    add railway "smoke deployment live at public HTTPS URL" "$live" "$RAILWAY_PUBLIC_URL"
+  else
+    add railway "railway up without login/project/confirmation prompts" 0 "$(tail -n 3 "$P/railway-up.log" | tr '\n' ' ')"
+  fi
+  redact_tree "$P"
+fi
+
+# --- verdict -----------------------------------------------------------------------
+if node "$EXP_DIR/lib/report.mjs" summary "$CHECKS" | tee "$P/report.txt"; then
+  CONFIG_SHA=$(shasum -a 256 "$EXP_DIR/config.env" | cut -d' ' -f1)
+  printf '{\n  "passed_at": "%s",\n  "image_id": "%s",\n  "config_sha256": "%s",\n  "report": "%s"\n}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$IMG" "$CONFIG_SHA" "$P/report.txt" > "$STAMP"
+  log "preflight PASSED; stamp written"
+else
+  log "preflight FAILED; a real run will refuse to start"
+  exit 1
+fi

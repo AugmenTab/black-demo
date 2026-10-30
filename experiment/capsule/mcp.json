@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "playwright-mcp",
+      "args": [
+        "--browser", "chromium",
+        "--executable-path", "/usr/local/bin/chromium",
+        "--headless",
+        "--isolated",
+        "--no-sandbox",
+        "--caps", "vision",
+        "--viewport-size", "1280x800",
+        "--grant-permissions", "clipboard-read", "clipboard-write"
+      ]
+    }
+  }
+}
